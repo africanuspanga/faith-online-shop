@@ -1,0 +1,7 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#f8f8f8"/>
+  <rect x="48" y="48" width="304" height="304" rx="18" fill="#ffffff" stroke="#e5e7eb"/>
+  <path d="M130 252L180 196L220 236L260 186L304 252H130Z" fill="#fec200" opacity="0.8"/>
+  <circle cx="170" cy="156" r="26" fill="#b3c100" opacity="0.9"/>
+  <text x="200" y="306" text-anchor="middle" fill="#1a1a1a" font-family="Arial, sans-serif" font-size="20" font-weight="700">Faith Online Shop</text>
+</svg>
