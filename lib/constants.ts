@@ -4,6 +4,11 @@ export const phoneNumber = "+255653670590";
 export const whatsappLink = "https://wa.me/255653670590";
 export const serviceHours = "09:00 - 19:00";
 export const shopLocation = "Mnazi Mmoja Opposite NBC Bank Dsm, Tanzania";
+export const bankDetails = {
+  bankName: "CRDB BANK",
+  accountName: "FAITH ONLINE SHOP",
+  accountNumber: "10215141271"
+} as const;
 
 export const heroSlides = [
   {

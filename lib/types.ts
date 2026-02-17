@@ -7,11 +7,21 @@ export interface Category {
   image: string;
 }
 
+export interface QuantityOffer {
+  id: string;
+  title: string;
+  subtitle: string;
+  paidUnits: number;
+  freeUnits: number;
+  badge?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
   slug: string;
   category: CategorySlug;
+  subCategory: string;
   sku: string;
   brand: string;
   originalPrice: number;
@@ -22,6 +32,7 @@ export interface Product {
   gallery: string[];
   sizeOptions: string[];
   colorOptions: string[];
+  quantityOptions: QuantityOffer[];
   sold: number;
   isNew?: boolean;
   bestSelling?: boolean;
@@ -33,6 +44,7 @@ export interface Product {
 
 export interface FilterState {
   categories: CategorySlug[];
+  subCategories: string[];
   sizes: string[];
   colors: string[];
   minPrice: number;
@@ -73,6 +85,9 @@ export interface OrderPayload {
   installmentEnabled: boolean;
   depositAmount: number;
   installmentNotes: string;
+  subtotal: number;
+  shippingFee: number;
+  shippingLabel: string;
   paymentReference?: string;
   paymentTrackingId?: string;
 }

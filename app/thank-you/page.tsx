@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
-import { whatsappLink } from "@/lib/constants";
+import { bankDetails, whatsappLink } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
 import { OrderReviewForm } from "@/components/order-review-form";
 
@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 export default async function ThankYouPage({
   searchParams
 }: {
-  searchParams: Promise<{ order?: string }>;
+  searchParams: Promise<{ order?: string; payment?: string }>;
 }) {
-  const { order } = await searchParams;
+  const { order, payment } = await searchParams;
 
   return (
     <section className="mx-auto max-w-2xl rounded-2xl border border-[var(--border)] bg-white p-6 text-center sm:p-10">
@@ -32,6 +32,14 @@ export default async function ThankYouPage({
         <p className="text-sm font-semibold">Dar es Salaam: 1-2 days</p>
         <p className="text-sm font-semibold">Outside Dar: 2-5 days</p>
         <p className="mt-2 text-xs text-[var(--muted)]">Gharama ya usafiri hutegemea eneo la mteja.</p>
+        {payment === "bank-deposit" ? (
+          <div className="mt-3 rounded-lg border border-[var(--border)] bg-white p-3">
+            <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Bank Deposit Details</p>
+            <p className="mt-1 text-sm"><span className="font-semibold">Bank:</span> {bankDetails.bankName}</p>
+            <p className="text-sm"><span className="font-semibold">Account Name:</span> {bankDetails.accountName}</p>
+            <p className="text-sm"><span className="font-semibold">A/C Number:</span> {bankDetails.accountNumber}</p>
+          </div>
+        ) : null}
       </div>
       <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
         <Link href="/" className={buttonVariants()}>

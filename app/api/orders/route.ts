@@ -2,8 +2,10 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { isAuthorizedAdminRequest } from "@/lib/admin-auth";
 import { getCatalogProductById } from "@/lib/catalog";
+import { isMissingColumnError } from "@/lib/db-errors";
 import { memoryOrders } from "@/lib/memory-store";
 import { createPesapalOrder } from "@/lib/pesapal";
+import { calculateShippingFee } from "@/lib/shipping-fees";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import type { OrderRecord, PaymentMethod, PaymentStatus } from "@/lib/types";
 
@@ -38,7 +40,7 @@ const toPaymentMethod = (value: unknown): PaymentMethod => {
 };
 
 const isLegacyOrderSchemaError = (message: string) =>
-  /column .* does not exist/i.test(message) || /product_id.*integer/i.test(message);
+  isMissingColumnError(message) || /product_id.*integer/i.test(message);
 
 export async function POST(request: Request) {
   try {
@@ -49,7 +51,6 @@ export async function POST(request: Request) {
 
     const paidQuantity = Math.max(1, Number(body.paidQuantity ?? body.quantity ?? 1));
     const quantity = Math.max(1, Number(body.quantity ?? 1));
-    const totalPrice = Number(body.totalPrice ?? (product ? product.salePrice * paidQuantity : 0));
 
     const fullName = String(body.fullName ?? body.customerName ?? "").trim();
     const phone = String(body.phone ?? "").trim();
@@ -66,6 +67,11 @@ export async function POST(request: Request) {
     const installmentEnabled = Boolean(body.installmentEnabled ?? false);
     const depositAmount = Math.max(0, Number(body.depositAmount ?? 0));
     const installmentNotes = String(body.installmentNotes ?? "").trim();
+    const subtotalPrice = product ? Number((product.salePrice * paidQuantity).toFixed(2)) : 0;
+    const shipping = calculateShippingFee({ regionCity, address });
+    const shippingFee = Number(shipping.fee.toFixed(2));
+    const totalPrice = Number((subtotalPrice + shippingFee).toFixed(2));
+    const shippingLabel = `${shipping.regionLabel} - ${shipping.matchedArea}`;
 
     if (!product || !fullName || !phone || !address || !productName || !regionCity) {
       return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
@@ -106,6 +112,9 @@ export async function POST(request: Request) {
       installmentEnabled,
       depositAmount: installmentEnabled ? depositAmount : 0,
       installmentNotes,
+      subtotal: subtotalPrice,
+      shippingFee,
+      shippingLabel,
       createdAt: new Date().toISOString(),
       status: "pending",
       total: totalPrice
@@ -161,6 +170,9 @@ export async function POST(request: Request) {
         installment_enabled: record.installmentEnabled,
         deposit_amount: record.depositAmount,
         installment_notes: record.installmentNotes,
+        subtotal: record.subtotal,
+        shipping_fee: record.shippingFee,
+        shipping_label: record.shippingLabel,
         payment_reference: paymentReference || null,
         payment_tracking_id: paymentTrackingId || null,
         status: record.status,
@@ -225,7 +237,7 @@ export async function GET(request: Request) {
 
   if (supabase) {
     const primarySelect =
-      "id, product_id, product_name, quantity, full_name, phone, region_city, address, selected_size, selected_color, payment_method, payment_status, installment_enabled, deposit_amount, installment_notes, payment_reference, payment_tracking_id, status, total, created_at";
+      "id, product_id, product_name, quantity, full_name, phone, region_city, address, selected_size, selected_color, payment_method, payment_status, installment_enabled, deposit_amount, installment_notes, subtotal, shipping_fee, shipping_label, payment_reference, payment_tracking_id, status, total, created_at";
     const legacySelect =
       "id, product_id, product_name, quantity, full_name, phone, region_city, address, status, total, created_at";
 
@@ -236,7 +248,7 @@ export async function GET(request: Request) {
     data = (primary.data as Record<string, unknown>[] | null) ?? null;
     error = primary.error;
 
-    if (error && /column .* does not exist/i.test(error.message)) {
+    if (error && isMissingColumnError(error.message)) {
       const legacy = await supabase.from("orders").select(legacySelect).order("created_at", { ascending: false });
       data = (legacy.data as Record<string, unknown>[] | null) ?? null;
       error = legacy.error;
@@ -250,6 +262,13 @@ export async function GET(request: Request) {
       const paymentMethod = toPaymentMethod(item.payment_method);
       const installmentEnabled = Boolean(item.installment_enabled ?? false);
       const depositAmount = Number(item.deposit_amount ?? 0);
+      const regionCity = String(item.region_city ?? "");
+      const address = String(item.address ?? "");
+      const derivedShipping = calculateShippingFee({ regionCity, address });
+      const shippingFee = Number(item.shipping_fee ?? 0) > 0 ? Number(item.shipping_fee ?? 0) : derivedShipping.fee;
+      const subtotal = Number(item.subtotal ?? 0) > 0
+        ? Number(item.subtotal ?? 0)
+        : Math.max(Number(item.total ?? 0) - shippingFee, 0);
 
       return {
         id: String(item.id ?? ""),
@@ -258,8 +277,8 @@ export async function GET(request: Request) {
         quantity: Number(item.quantity ?? 1),
         fullName: String(item.full_name ?? ""),
         phone: String(item.phone ?? ""),
-        regionCity: String(item.region_city ?? ""),
-        address: String(item.address ?? ""),
+        regionCity,
+        address,
         selectedSize: String(item.selected_size ?? ""),
         selectedColor: String(item.selected_color ?? ""),
         paymentMethod,
@@ -269,6 +288,9 @@ export async function GET(request: Request) {
         installmentEnabled,
         depositAmount,
         installmentNotes: String(item.installment_notes ?? ""),
+        subtotal,
+        shippingFee,
+        shippingLabel: String(item.shipping_label ?? `${derivedShipping.regionLabel} - ${derivedShipping.matchedArea}`),
         paymentReference: String(item.payment_reference ?? ""),
         paymentTrackingId: String(item.payment_tracking_id ?? ""),
         status: allowedStatuses.has(String(item.status ?? ""))
@@ -316,7 +338,7 @@ export async function PATCH(request: Request) {
         .select("id, status, payment_status")
         .single();
 
-      if (error && /column .* does not exist/i.test(error.message)) {
+      if (error && isMissingColumnError(error.message)) {
         const { data: legacyData, error: legacyError } = await supabase
           .from("orders")
           .update({ status })

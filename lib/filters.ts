@@ -22,6 +22,11 @@ export const filterProducts = (products: Product[], filters: FilterState): Filte
     filtered = filtered.filter((item) => filters.categories.includes(item.category));
   }
 
+  if (filters.subCategories.length) {
+    const requiredSubCategories = new Set(filters.subCategories.map((item) => item.toLowerCase()));
+    filtered = filtered.filter((item) => requiredSubCategories.has(item.subCategory.toLowerCase()));
+  }
+
   if (filters.sizes.length) {
     const requiredSizes = new Set(filters.sizes.map((item) => item.toLowerCase()));
     filtered = filtered.filter((item) => item.sizeOptions.some((size) => requiredSizes.has(size.toLowerCase())));

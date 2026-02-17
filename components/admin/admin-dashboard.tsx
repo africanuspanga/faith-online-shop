@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { Bell, LoaderCircle, LogOut, Package, Pencil, Printer, RefreshCcw, Trash2, X } from "lucide-react";
 import { categories } from "@/lib/categories";
 import { formatTZS } from "@/lib/format";
+import { defaultQuantityOffers, quantityOffersToText, toQuantityOffers } from "@/lib/quantity-offers";
 import type { CategorySlug, OrderRecord, PaymentStatus } from "@/lib/types";
 import { ADMIN_STORAGE_KEY } from "@/lib/admin-auth";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ type AdminProduct = {
   id?: string | number;
   name: string;
   category: string;
+  sub_category?: string;
+  subCategory?: string;
   sku?: string;
   brand?: string;
   sale_price?: number;
@@ -46,6 +49,8 @@ type AdminProduct = {
   sizeOptions?: string[] | string;
   color_options?: string[] | string;
   colorOptions?: string[] | string;
+  quantity_options?: unknown;
+  quantityOptions?: unknown;
 };
 
 const defaultCategoryChoices = categories.map((item) => item.slug);
@@ -53,6 +58,7 @@ const defaultCategoryChoices = categories.map((item) => item.slug);
 const defaultProductForm = {
   name: "",
   category: defaultCategoryChoices[0] ?? "general",
+  subCategory: "",
   sku: "",
   brand: "Faith Select",
   originalPrice: "",
@@ -68,7 +74,8 @@ const defaultProductForm = {
   descriptionSw: "",
   whoForSw: "",
   benefitsSw: "",
-  gallery: ""
+  gallery: "",
+  quantityOptions: quantityOffersToText(defaultQuantityOffers)
 };
 
 const orderStatusOptions: OrderRecord["status"][] = ["pending", "confirmed", "delivered", "cancelled"];
@@ -319,6 +326,7 @@ export const AdminDashboard = () => {
           id: editingProductId,
           name: productForm.name,
           category: normalizeCategorySlug(productForm.category),
+          subCategory: normalizeCategorySlug(productForm.subCategory),
           sku: productForm.sku,
           brand: productForm.brand,
           originalPrice: Number(productForm.originalPrice),
@@ -334,7 +342,8 @@ export const AdminDashboard = () => {
           descriptionSw: productForm.descriptionSw,
           whoForSw: productForm.whoForSw,
           benefitsSw: productForm.benefitsSw,
-          gallery: productForm.gallery
+          gallery: productForm.gallery,
+          quantityOptions: productForm.quantityOptions
         })
       });
 
@@ -366,6 +375,7 @@ export const AdminDashboard = () => {
     setProductForm({
       name: product.name ?? "",
       category: selectedCategory,
+      subCategory: String(product.subCategory ?? product.sub_category ?? ""),
       sku: String(product.sku ?? ""),
       brand: String(product.brand ?? "Faith Select"),
       originalPrice: String(product.originalPrice ?? product.original_price ?? ""),
@@ -381,7 +391,8 @@ export const AdminDashboard = () => {
       descriptionSw: product.descriptionSw ?? product.description_sw ?? "",
       whoForSw: product.whoForSw ?? product.who_for_sw ?? "",
       benefitsSw: toStringList(product.benefitsSw ?? product.benefits_sw),
-      gallery: toStringList(product.gallery)
+      gallery: toStringList(product.gallery),
+      quantityOptions: quantityOffersToText(toQuantityOffers(product.quantityOptions ?? product.quantity_options))
     });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -493,6 +504,8 @@ export const AdminDashboard = () => {
             <p><strong>Order ID:</strong> ${escapeHtml(order.id)}</p>
             <p><strong>Product:</strong> ${escapeHtml(order.productName ?? order.productId)}</p>
             <p><strong>Quantity:</strong> ${order.quantity}</p>
+            <p><strong>Subtotal:</strong> ${escapeHtml(formatTZS(order.subtotal || 0))}</p>
+            <p><strong>Shipping:</strong> ${escapeHtml(formatTZS(order.shippingFee || 0))} (${escapeHtml(order.shippingLabel || "-")})</p>
             <p><strong>Total:</strong> ${escapeHtml(formatTZS(order.total))}</p>
             <p><strong>Customer:</strong> ${escapeHtml(order.fullName)}</p>
             <p><strong>Phone:</strong> ${escapeHtml(order.phone)}</p>
@@ -612,6 +625,9 @@ export const AdminDashboard = () => {
                 <p className="text-[var(--muted)]">{order.address}</p>
                 <p className="mt-1 font-semibold">Qty: {order.quantity} • {formatTZS(order.total)}</p>
                 <p className="text-xs text-[var(--muted)]">
+                  Subtotal/Shipping: {formatTZS(order.subtotal || 0)} / {formatTZS(order.shippingFee || 0)}
+                </p>
+                <p className="text-xs text-[var(--muted)]">
                   Size/Color: {order.selectedSize || "-"} / {order.selectedColor || "-"}
                 </p>
                 <p className="text-xs text-[var(--muted)]">
@@ -709,7 +725,12 @@ export const AdminDashboard = () => {
                         ))}
                       </select>
                     </td>
-                    <td className="py-3 font-bold text-[var(--primary)]">{formatTZS(order.total)}</td>
+                    <td className="py-3">
+                      <p className="font-bold text-[var(--primary)]">{formatTZS(order.total)}</p>
+                      <p className="text-xs text-[var(--muted)]">
+                        {formatTZS(order.subtotal || 0)} + {formatTZS(order.shippingFee || 0)}
+                      </p>
+                    </td>
                     <td className="py-3">
                       <select
                         value={order.status}
@@ -789,6 +810,11 @@ export const AdminDashboard = () => {
                   </Button>
                 </div>
               </div>
+              <Input
+                placeholder="Sub category (e.g smart-watch, skincare, shoes)"
+                value={productForm.subCategory}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, subCategory: event.target.value }))}
+              />
 
               <div className="grid grid-cols-2 gap-2">
                 <Input
@@ -866,6 +892,15 @@ export const AdminDashboard = () => {
                 value={productForm.gallery}
                 onChange={(event) => setProductForm((prev) => ({ ...prev, gallery: event.target.value }))}
               />
+              <textarea
+                placeholder="Quantity Offers (one line: Title|Paid Units|Free Units|Subtitle|Badge)"
+                value={productForm.quantityOptions}
+                onChange={(event) => setProductForm((prev) => ({ ...prev, quantityOptions: event.target.value }))}
+                className="min-h-24 w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
+              />
+              <p className="-mt-2 text-xs text-[var(--muted)]">
+                Mfano: Buy 2 Get 1 Free|2|1|MOST POPULAR|MOST POPULAR
+              </p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-sm">
                   <input
@@ -949,7 +984,10 @@ export const AdminDashboard = () => {
                   <article key={productId} className="rounded-xl border border-[var(--border)] p-3 text-sm">
                     <p className="font-semibold line-clamp-1">{product.name}</p>
                     <p className="text-xs text-[var(--muted)]">
-                      {product.category} • {inStock ? "in-stock" : "out-of-stock"} • {product.brand ?? "Faith Select"} • {product.sku ?? "-"}
+                      {product.category}
+                      {(product.subCategory ?? product.sub_category) ? ` / ${String(product.subCategory ?? product.sub_category)}` : ""}
+                      {" • "}
+                      {inStock ? "in-stock" : "out-of-stock"} • {product.brand ?? "Faith Select"} • {product.sku ?? "-"}
                     </p>
                     <div className="mt-1 flex items-center gap-2">
                       <p className="text-sm font-bold text-[var(--primary)]">{formatTZS(Number(sale))}</p>

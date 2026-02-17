@@ -1,4 +1,5 @@
 import type { Product } from "@/lib/types";
+import { defaultQuantityOffers } from "@/lib/quantity-offers";
 
 const fallbackImage = "/placeholder.svg";
 
@@ -35,39 +36,45 @@ const productImagesById: Record<number, string> = {
   30: "/rgb-led-strip-lights.webp"
 };
 
-const categoryProfiles: Record<string, { brand: string; sizes: string[]; colors: string[]; code: string }> = {
+const categoryProfiles: Record<string, { brand: string; subCategory: string; sizes: string[]; colors: string[]; code: string }> = {
   electronic: {
     brand: "Faith Tech",
+    subCategory: "gadgets",
     sizes: ["Standard"],
     colors: ["Black", "White"],
     code: "ELC"
   },
   fashion: {
     brand: "Faith Wear",
+    subCategory: "clothing",
     sizes: ["S", "M", "L", "XL"],
     colors: ["Black", "White", "Navy", "Grey"],
     code: "FSN"
   },
   "fashion-accessories": {
     brand: "Faith Style",
+    subCategory: "accessories",
     sizes: ["Standard"],
     colors: ["Black", "Brown", "Gold", "Silver"],
     code: "FAS"
   },
   "hardware-automobile": {
     brand: "Faith Auto",
+    subCategory: "auto-tools",
     sizes: ["Standard"],
     colors: ["Black", "Grey", "Red"],
     code: "HWA"
   },
   "health-beauty": {
     brand: "Faith Care",
+    subCategory: "skincare",
     sizes: ["30ml", "50ml", "200g"],
     colors: ["Natural", "Classic"],
     code: "HLB"
   },
   "home-living": {
     brand: "Faith Home",
+    subCategory: "home-essentials",
     sizes: ["Small", "Medium", "Large"],
     colors: ["Black", "White", "Blue"],
     code: "HML"
@@ -91,6 +98,7 @@ const product = (
   const image = productImagesById[id] ?? fallbackImage;
   const profile = categoryProfiles[category] ?? {
     brand: "Faith Select",
+    subCategory: "general",
     sizes: ["Standard"],
     colors: ["Black"],
     code: "GEN"
@@ -102,6 +110,7 @@ const product = (
     name,
     slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""),
     category,
+    subCategory: profile.subCategory,
     sku,
     brand: profile.brand,
     originalPrice,
@@ -112,6 +121,7 @@ const product = (
     gallery: [image, image, image],
     sizeOptions: profile.sizes,
     colorOptions: profile.colors,
+    quantityOptions: defaultQuantityOffers.map((offer) => ({ ...offer })),
     sold,
     isNew,
     bestSelling,

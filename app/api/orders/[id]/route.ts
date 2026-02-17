@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedAdminRequest } from "@/lib/admin-auth";
+import { isMissingColumnError } from "@/lib/db-errors";
 import { memoryOrders } from "@/lib/memory-store";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import type { PaymentStatus } from "@/lib/types";
@@ -49,7 +50,7 @@ export async function PATCH(
         .select("id, status, payment_status")
         .single();
 
-      if (error && /column .* does not exist/i.test(error.message)) {
+      if (error && isMissingColumnError(error.message)) {
         const { data: legacyData, error: legacyError } = await supabase
           .from("orders")
           .update({ status })

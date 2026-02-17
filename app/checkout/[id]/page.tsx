@@ -81,9 +81,13 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
             <span className="rounded-full bg-[var(--secondary)] px-3 py-1 text-xs font-black">-30%</span>
           </div>
           <p className="leading-relaxed text-[var(--muted)]">{product.descriptionSw}</p>
-          <div className="grid gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-xs sm:grid-cols-2 sm:text-sm">
+          <div className="grid gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 text-xs sm:grid-cols-3 sm:text-sm">
             <p><span className="font-bold">SKU:</span> {product.sku}</p>
             <p><span className="font-bold">Brand:</span> {product.brand}</p>
+            <p>
+              <span className="font-bold">Category:</span> {product.category}
+              {product.subCategory ? ` / ${product.subCategory}` : ""}
+            </p>
           </div>
 
           <section className="grid grid-cols-2 gap-2 text-xs font-semibold text-[var(--muted)] sm:text-sm">

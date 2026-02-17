@@ -7,6 +7,7 @@ create table if not exists public.products (
   name text not null,
   slug text not null default '',
   category text not null,
+  sub_category text not null default '',
   sku text not null default '',
   brand text not null default 'Faith Select',
   original_price numeric(12,2) not null check (original_price > 0),
@@ -17,6 +18,7 @@ create table if not exists public.products (
   gallery text[] not null default '{}',
   size_options text[] not null default '{}',
   color_options text[] not null default '{}',
+  quantity_options jsonb not null default '[{"id":"buy-1","title":"Buy 1","subtitle":"50% OFF","paidUnits":1,"freeUnits":0},{"id":"buy-2-get-1-free","title":"Buy 2 Get 1 Free","subtitle":"MOST POPULAR","paidUnits":2,"freeUnits":1,"badge":"MOST POPULAR"},{"id":"buy-3-get-2-free","title":"Buy 3 Get 2 Free","subtitle":"BEST VALUE","paidUnits":3,"freeUnits":2,"badge":"BEST VALUE"}]'::jsonb,
   sold integer not null default 0,
   is_new boolean not null default false,
   best_selling boolean not null default false,
@@ -28,8 +30,6 @@ create table if not exists public.products (
 
 create index if not exists idx_products_category on public.products(category);
 create index if not exists idx_products_created_at on public.products(created_at desc);
-create unique index if not exists idx_products_slug_unique on public.products(slug) where slug <> '';
-create unique index if not exists idx_products_sku_unique on public.products(sku) where sku <> '';
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
@@ -47,6 +47,9 @@ create table if not exists public.orders (
   installment_enabled boolean not null default false,
   deposit_amount numeric(12,2) not null default 0 check (deposit_amount >= 0),
   installment_notes text not null default '',
+  subtotal numeric(12,2) not null default 0 check (subtotal >= 0),
+  shipping_fee numeric(12,2) not null default 0 check (shipping_fee >= 0),
+  shipping_label text not null default '',
   payment_reference text,
   payment_tracking_id text,
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'delivered', 'cancelled')),
@@ -54,10 +57,6 @@ create table if not exists public.orders (
   created_at timestamptz not null default now()
 );
 
-create index if not exists idx_orders_created_at on public.orders(created_at desc);
-create index if not exists idx_orders_status on public.orders(status);
-create index if not exists idx_orders_payment_status on public.orders(payment_status);
-create index if not exists idx_orders_payment_reference on public.orders(payment_reference);
 
 create table if not exists public.reviews (
   id uuid primary key default gen_random_uuid(),
@@ -98,10 +97,12 @@ create index if not exists idx_site_visits_path on public.site_visits(path);
 alter table public.products add column if not exists slug text not null default '';
 alter table public.products add column if not exists sku text not null default '';
 alter table public.products add column if not exists brand text not null default 'Faith Select';
+alter table public.products add column if not exists sub_category text not null default '';
 alter table public.products add column if not exists rating numeric(3,2) not null default 4.5;
 alter table public.products add column if not exists gallery text[] not null default '{}';
 alter table public.products add column if not exists size_options text[] not null default '{}';
 alter table public.products add column if not exists color_options text[] not null default '{}';
+alter table public.products add column if not exists quantity_options jsonb not null default '[{"id":"buy-1","title":"Buy 1","subtitle":"50% OFF","paidUnits":1,"freeUnits":0},{"id":"buy-2-get-1-free","title":"Buy 2 Get 1 Free","subtitle":"MOST POPULAR","paidUnits":2,"freeUnits":1,"badge":"MOST POPULAR"},{"id":"buy-3-get-2-free","title":"Buy 3 Get 2 Free","subtitle":"BEST VALUE","paidUnits":3,"freeUnits":2,"badge":"BEST VALUE"}]'::jsonb;
 alter table public.products add column if not exists sold integer not null default 0;
 alter table public.products add column if not exists is_new boolean not null default false;
 alter table public.products add column if not exists best_selling boolean not null default false;
@@ -117,6 +118,26 @@ update public.products
 set sku = upper(regexp_replace(coalesce(slug, name), '[^a-z0-9]+', '-', 'g'))
 where coalesce(sku, '') = '';
 
+with slug_duplicates as (
+  select id, row_number() over (partition by slug order by created_at asc, id asc) as rn
+  from public.products
+  where coalesce(slug, '') <> ''
+)
+update public.products p
+set slug = p.slug || '-' || right(replace(p.id::text, '-', ''), 6)
+from slug_duplicates d
+where p.id = d.id and d.rn > 1;
+
+with sku_duplicates as (
+  select id, row_number() over (partition by sku order by created_at asc, id asc) as rn
+  from public.products
+  where coalesce(sku, '') <> ''
+)
+update public.products p
+set sku = p.sku || '-' || right(replace(p.id::text, '-', ''), 6)
+from sku_duplicates d
+where p.id = d.id and d.rn > 1;
+
 alter table public.orders alter column product_id type text using product_id::text;
 alter table public.orders add column if not exists selected_size text not null default '';
 alter table public.orders add column if not exists selected_color text not null default '';
@@ -125,6 +146,9 @@ alter table public.orders add column if not exists payment_status text not null 
 alter table public.orders add column if not exists installment_enabled boolean not null default false;
 alter table public.orders add column if not exists deposit_amount numeric(12,2) not null default 0;
 alter table public.orders add column if not exists installment_notes text not null default '';
+alter table public.orders add column if not exists subtotal numeric(12,2) not null default 0;
+alter table public.orders add column if not exists shipping_fee numeric(12,2) not null default 0;
+alter table public.orders add column if not exists shipping_label text not null default '';
 alter table public.orders add column if not exists payment_reference text;
 alter table public.orders add column if not exists payment_tracking_id text;
 
@@ -150,6 +174,10 @@ $$;
 
 create unique index if not exists idx_products_slug_unique on public.products(slug) where slug <> '';
 create unique index if not exists idx_products_sku_unique on public.products(sku) where sku <> '';
+create index if not exists idx_orders_created_at on public.orders(created_at desc);
+create index if not exists idx_orders_status on public.orders(status);
+create index if not exists idx_orders_payment_status on public.orders(payment_status);
+create index if not exists idx_orders_payment_reference on public.orders(payment_reference);
 
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
@@ -174,5 +202,7 @@ on public.reviews
 for select
 to anon, authenticated
 using (true);
+
+notify pgrst, 'reload schema';
 
 commit;

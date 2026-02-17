@@ -36,6 +36,13 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           {product.name}
         </Link>
         <p className="text-[11px] font-semibold text-[var(--muted)]">{product.brand} • {product.sku}</p>
+        {product.subCategory ? (
+          <p className="text-[11px] font-semibold text-[var(--muted)]">
+            {product.category} • {product.subCategory}
+          </p>
+        ) : (
+          <p className="text-[11px] font-semibold text-[var(--muted)]">{product.category}</p>
+        )}
         <p className="text-[11px] text-[var(--muted)]">
           Size: {product.sizeOptions.join(", ") || "Standard"} | Color: {product.colorOptions.join(", ") || "Standard"}
         </p>

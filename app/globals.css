@@ -23,6 +23,7 @@ body {
 
 body {
   min-height: 100vh;
+  font-family: "Segoe UI", "Noto Sans", "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
   line-height: 1.6;
   text-rendering: optimizeLegibility;

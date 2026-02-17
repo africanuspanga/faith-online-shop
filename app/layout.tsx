@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { Suspense } from "react";
 import "@/app/globals.css";
 import { AnnouncementBar } from "@/components/announcement-bar";
@@ -9,12 +8,6 @@ import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { WhatsAppFloat } from "@/components/whatsapp-float";
 import { ScrollBehaviors } from "@/components/scroll-behaviors";
 import { Providers } from "@/components/providers";
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  display: "swap"
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.faithshop.co.tz"),
@@ -40,7 +33,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="sw">
-      <body className={inter.className}>
+      <body>
         <Providers>
           <AnnouncementBar />
           <Suspense fallback={null}>

@@ -1,5 +1,6 @@
 import { categories as defaultCategories, createFallbackCategory, mergeCategories, normalizeCategorySlug } from "@/lib/categories";
 import { products as staticProducts } from "@/lib/products";
+import { defaultQuantityOffers, toQuantityOffers } from "@/lib/quantity-offers";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import type { Category, CategorySlug, Product } from "@/lib/types";
 
@@ -8,6 +9,7 @@ type DatabaseProductRow = {
   name: string;
   slug: string | null;
   category: string;
+  sub_category: string | null;
   sku: string | null;
   brand: string | null;
   original_price: number;
@@ -18,6 +20,7 @@ type DatabaseProductRow = {
   gallery: string[] | string | null;
   size_options: string[] | string | null;
   color_options: string[] | string | null;
+  quantity_options: unknown;
   sold: number | null;
   is_new: boolean | null;
   best_selling: boolean | null;
@@ -80,6 +83,7 @@ const normalizeDatabaseProduct = (row: DatabaseProductRow): Product => {
   const benefitsSw = toStringArray(row.benefits_sw);
   const sizeOptions = toStringArray(row.size_options);
   const colorOptions = toStringArray(row.color_options);
+  const quantityOptions = toQuantityOffers(row.quantity_options ?? staticProduct?.quantityOptions ?? defaultQuantityOffers);
   const image = normalizeImageSource(row.image, slug);
   const normalizedGallery = gallery.map((item) => toLocalPath(item));
   const salePrice = Number(row.sale_price) || 0;
@@ -90,6 +94,7 @@ const normalizeDatabaseProduct = (row: DatabaseProductRow): Product => {
     name: row.name,
     slug,
     category,
+    subCategory: normalizeCategorySlug(row.sub_category ?? "") || staticProduct?.subCategory || "",
     sku: row.sku?.trim() || staticProduct?.sku || `SKU-${String(row.id).slice(0, 8).toUpperCase()}`,
     brand: row.brand?.trim() || staticProduct?.brand || "Faith Select",
     originalPrice,
@@ -100,6 +105,7 @@ const normalizeDatabaseProduct = (row: DatabaseProductRow): Product => {
     gallery: normalizedGallery.length ? normalizedGallery : [image, image, image],
     sizeOptions: sizeOptions.length ? sizeOptions : (staticProduct?.sizeOptions ?? []),
     colorOptions: colorOptions.length ? colorOptions : (staticProduct?.colorOptions ?? []),
+    quantityOptions,
     sold: Number(row.sold ?? 0),
     isNew: Boolean(row.is_new ?? false),
     bestSelling: Boolean(row.best_selling ?? false),

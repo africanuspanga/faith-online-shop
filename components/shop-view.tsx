@@ -82,6 +82,7 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
 
     return {
       categories: forcedCategories,
+      subCategories: parseFacetValues(searchParams.get("sub")),
       sizes: parseFacetValues(searchParams.get("size")),
       colors: parseFacetValues(searchParams.get("color")),
       saleOnly: searchParams.get("sale") === "1",
@@ -99,6 +100,22 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
     };
   }, [searchParams, forcedCategory]);
 
+  const availableSubCategories = useMemo(() => {
+    const allowedCategories = forcedCategory
+      ? new Set([forcedCategory])
+      : filters.categories.length
+        ? new Set(filters.categories)
+        : null;
+
+    const source = allowedCategories
+      ? products.filter((product) => allowedCategories.has(product.category))
+      : products;
+
+    return [...new Set(source.map((product) => product.subCategory.trim()).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [products, forcedCategory, filters.categories]);
+
   const { items, total, totalPages } = useMemo(() => filterProducts(products, filters), [products, filters]);
 
   const safePage = Math.min(filters.page, totalPages);
@@ -107,6 +124,7 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
 
   const activeFilterCount =
     (forcedCategory ? 0 : filters.categories.length) +
+    filters.subCategories.length +
     filters.sizes.length +
     filters.colors.length +
     (filters.saleOnly ? 1 : 0) +
@@ -156,6 +174,17 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
     });
   };
 
+  const toggleSubCategory = (value: string) => {
+    const next = filters.subCategories.includes(value)
+      ? filters.subCategories.filter((item) => item !== value)
+      : [...filters.subCategories, value];
+
+    updateParams({
+      sub: next.length ? next.join(",") : null,
+      page: "1"
+    });
+  };
+
   const toggleColor = (value: string) => {
     const next = filters.colors.includes(value)
       ? filters.colors.filter((item) => item !== value)
@@ -173,6 +202,7 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
       sale: null,
       stock: null,
       rating: null,
+      sub: null,
       size: null,
       color: null,
       min: null,
@@ -206,6 +236,31 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
                 {filters.categories.includes(category.slug) ? <span className="text-xs font-black">ON</span> : null}
               </button>
             ))}
+          </div>
+        </section>
+      ) : null}
+
+      {availableSubCategories.length ? (
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wide">Sub Category</h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {availableSubCategories.map((subCategory) => {
+              const active = filters.subCategories.includes(subCategory);
+              return (
+                <button
+                  key={subCategory}
+                  type="button"
+                  onClick={() => toggleSubCategory(subCategory)}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
+                    active
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] bg-white text-[var(--foreground)] hover:border-[var(--primary)]/50"
+                  }`}
+                >
+                  {slugToLabel(subCategory)}
+                </button>
+              );
+            })}
           </div>
         </section>
       ) : null}

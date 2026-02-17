@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedAdminRequest } from "@/lib/admin-auth";
 import { normalizeCategorySlug } from "@/lib/categories";
+import { isMissingColumnError } from "@/lib/db-errors";
 import { products as staticProducts } from "@/lib/products";
+import { toQuantityOffers } from "@/lib/quantity-offers";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const fallbackImage = "/placeholder.svg";
@@ -47,6 +49,7 @@ type ProductPayload = {
   name: string;
   slug: string;
   category: string;
+  sub_category: string;
   sku: string;
   brand: string;
   original_price: number;
@@ -57,6 +60,7 @@ type ProductPayload = {
   gallery: string[];
   size_options: string[];
   color_options: string[];
+  quantity_options: ReturnType<typeof toQuantityOffers>;
   sold: number;
   is_new: boolean;
   best_selling: boolean;
@@ -68,6 +72,7 @@ type ProductPayload = {
 const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
   const name = String(body.name ?? "").trim();
   const category = normalizeCategorySlug(String(body.category ?? ""));
+  const subCategory = normalizeCategorySlug(String(body.subCategory ?? ""));
   const originalPrice = Number(body.originalPrice ?? 0);
   const salePrice = Number(body.salePrice ?? 0);
   const sku = String(body.sku ?? "").trim().toUpperCase();
@@ -84,6 +89,7 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
   const gallery = toStringList(body.gallery);
   const sizeOptions = toStringList(body.sizeOptions);
   const colorOptions = toStringList(body.colorOptions);
+  const quantityOptions = toQuantityOffers(body.quantityOptions);
 
   if (
     !name ||
@@ -99,6 +105,7 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
     name,
     slug: slugify(name),
     category,
+    sub_category: subCategory,
     sku: sku || `SKU-${slugify(name).toUpperCase()}`,
     brand: brand || "Faith Select",
     original_price: originalPrice,
@@ -109,6 +116,7 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
     gallery: (gallery.length ? gallery : [image, image, image]).map((item) => toAssetPath(item)),
     size_options: sizeOptions,
     color_options: colorOptions,
+    quantity_options: quantityOptions,
     sold,
     is_new: isNew,
     best_selling: bestSelling,
@@ -173,7 +181,7 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error && /column .* does not exist/i.test(error.message)) {
+    if (error && isMissingColumnError(error.message)) {
       const { data: legacyData, error: legacyError } = await supabase
         .from("products")
         .insert({
@@ -239,7 +247,7 @@ export async function PATCH(request: Request) {
       .select()
       .single();
 
-    if (error && /column .* does not exist/i.test(error.message)) {
+    if (error && isMissingColumnError(error.message)) {
       const { data: legacyData, error: legacyError } = await supabase
         .from("products")
         .update({
@@ -323,6 +331,7 @@ export async function PUT(request: Request) {
     name: item.name,
     slug: item.slug,
     category: item.category,
+    sub_category: item.subCategory,
     sku: item.sku,
     brand: item.brand,
     original_price: item.originalPrice,
@@ -333,6 +342,7 @@ export async function PUT(request: Request) {
     gallery: item.gallery,
     size_options: item.sizeOptions,
     color_options: item.colorOptions,
+    quantity_options: item.quantityOptions,
     sold: item.sold,
     is_new: Boolean(item.isNew),
     best_selling: Boolean(item.bestSelling),
@@ -342,6 +352,28 @@ export async function PUT(request: Request) {
   }));
 
   const { error } = await supabase.from("products").upsert(rows, { onConflict: "slug" });
+
+  if (error && isMissingColumnError(error.message)) {
+    const legacyRows = rows.map((item) => ({
+      name: item.name,
+      category: item.category,
+      original_price: item.original_price,
+      sale_price: item.sale_price,
+      image: item.image,
+      in_stock: item.in_stock
+    }));
+    const { error: legacyError } = await supabase.from("products").insert(legacyRows);
+
+    if (legacyError) {
+      return NextResponse.json({ error: legacyError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      imported: legacyRows.length,
+      warning: "Imported using legacy schema. Run latest supabase/schema.sql to enable full product fields."
+    });
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

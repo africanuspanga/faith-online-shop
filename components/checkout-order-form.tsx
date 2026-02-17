@@ -1,50 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CreditCard, LoaderCircle, Shield, Truck, Wallet } from "lucide-react";
 import type { PaymentMethod, Product } from "@/lib/types";
+import { bankDetails } from "@/lib/constants";
 import { formatTZS } from "@/lib/format";
-import { darDeliveryFeeRange, upcountryFlatShippingFee } from "@/lib/shipping-fees";
+import { defaultQuantityOffers } from "@/lib/quantity-offers";
+import { calculateShippingFee, darDeliveryFeeRange, upcountryFlatShippingFee } from "@/lib/shipping-fees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-
-type PackageOption = {
-  id: "buy-1" | "buy-2" | "buy-3";
-  title: string;
-  subtitle: string;
-  paidUnits: number;
-  freeUnits: number;
-  badge?: string;
-};
-
-const packageOptions: PackageOption[] = [
-  {
-    id: "buy-1",
-    title: "Buy 1",
-    subtitle: "50% OFF",
-    paidUnits: 1,
-    freeUnits: 0
-  },
-  {
-    id: "buy-2",
-    title: "Buy 2 Get 1 Free",
-    subtitle: "MOST POPULAR",
-    paidUnits: 2,
-    freeUnits: 1,
-    badge: "MOST POPULAR"
-  },
-  {
-    id: "buy-3",
-    title: "Buy 3 Get 2 Free",
-    subtitle: "BEST VALUE",
-    paidUnits: 3,
-    freeUnits: 2,
-    badge: "BEST VALUE"
-  }
-];
 
 export const CheckoutOrderForm = ({ product }: { product: Product }) => {
   const router = useRouter();
@@ -54,21 +21,37 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
   const [address, setAddress] = useState("");
   const [selectedSize, setSelectedSize] = useState(product.sizeOptions[0] ?? "");
   const [selectedColor, setSelectedColor] = useState(product.colorOptions[0] ?? "");
-  const [selectedPackage, setSelectedPackage] = useState<PackageOption["id"]>("buy-2");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash-on-delivery");
   const [installmentEnabled, setInstallmentEnabled] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
   const [installmentNotes, setInstallmentNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const selected = useMemo(
-    () => packageOptions.find((item) => item.id === selectedPackage) ?? packageOptions[1],
-    [selectedPackage]
+  const packageOptions = useMemo(
+    () => (product.quantityOptions?.length ? product.quantityOptions : defaultQuantityOffers),
+    [product.quantityOptions]
   );
 
-  const quantity = selected.paidUnits + selected.freeUnits;
-  const totalPrice = selected.paidUnits * product.salePrice;
+  const [selectedPackage, setSelectedPackage] = useState<string>(
+    packageOptions[1]?.id ?? packageOptions[0]?.id ?? "buy-1"
+  );
+
+  useEffect(() => {
+    if (!packageOptions.some((item) => item.id === selectedPackage)) {
+      setSelectedPackage(packageOptions[0]?.id ?? "buy-1");
+    }
+  }, [packageOptions, selectedPackage]);
+
+  const selected = useMemo(
+    () => packageOptions.find((item) => item.id === selectedPackage) ?? packageOptions[0],
+    [packageOptions, selectedPackage]
+  );
+
+  const quantity = (selected?.paidUnits ?? 1) + (selected?.freeUnits ?? 0);
+  const subtotalPrice = (selected?.paidUnits ?? 1) * product.salePrice;
   const originalTotal = quantity * product.originalPrice;
+  const shippingEstimate = useMemo(() => calculateShippingFee({ regionCity, address }), [regionCity, address]);
+  const totalPrice = subtotalPrice + shippingEstimate.fee;
   const parsedDeposit = Number(depositAmount || 0);
   const validDeposit = parsedDeposit > 0 && parsedDeposit < totalPrice;
 
@@ -107,8 +90,11 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
           productId: product.id,
           productName: product.name,
           quantity,
-          paidQuantity: selected.paidUnits,
-          freeQuantity: selected.freeUnits,
+          paidQuantity: selected?.paidUnits ?? 1,
+          freeQuantity: selected?.freeUnits ?? 0,
+          subtotalPrice,
+          shippingFee: shippingEstimate.fee,
+          shippingLabel: `${shippingEstimate.regionLabel} - ${shippingEstimate.matchedArea}`,
           totalPrice,
           customerName,
           phone,
@@ -137,7 +123,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
 
       window.scrollTo({ top: 0, behavior: "smooth" });
       toast.success("Order imepokelewa kikamilifu");
-      router.push(`/thank-you?order=${data.id}`);
+      router.push(`/thank-you?order=${encodeURIComponent(data.id)}&payment=${encodeURIComponent(paymentMethod)}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kuna hitilafu, jaribu tena.");
     } finally {
@@ -152,12 +138,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         <label htmlFor="customerName" className="text-sm font-semibold">
           Jina Kamili
         </label>
-        <Input
-          id="customerName"
-          value={customerName}
-          onChange={(event) => setCustomerName(event.target.value)}
-          required
-        />
+        <Input id="customerName" value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
       </div>
       <div className="space-y-2">
         <label htmlFor="phone" className="text-sm font-semibold">
@@ -173,7 +154,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
       </div>
       <div className="space-y-2">
         <label htmlFor="address" className="text-sm font-semibold">
-          Anuani Kamili
+          Area / Anuani Kamili
         </label>
         <Textarea id="address" value={address} onChange={(event) => setAddress(event.target.value)} required />
       </div>
@@ -273,16 +254,24 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         </div>
       </div>
 
-      <div className="rounded-xl border border-[var(--border)] bg-white p-3">
+      <div className="space-y-2 rounded-xl border border-[var(--border)] bg-white p-3">
         <div className="flex items-center justify-between text-sm">
           <span>Selected quantity</span>
           <span className="font-semibold">{quantity} item(s)</span>
         </div>
-        <div className="mt-2 flex items-center justify-between text-sm">
-          <span>Total price</span>
+        <div className="flex items-center justify-between text-sm">
+          <span>Subtotal</span>
+          <span className="font-semibold">{formatTZS(subtotalPrice)}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span>Shipping ({shippingEstimate.matchedArea})</span>
+          <span className="font-semibold">{formatTZS(shippingEstimate.fee)}</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between border-t border-[var(--border)] pt-2 text-sm">
+          <span>Total bill</span>
           <span className="text-lg font-black text-[var(--primary)]">{formatTZS(totalPrice)}</span>
         </div>
-        <p className="mt-1 text-xs text-[var(--muted)] line-through">Original: {formatTZS(originalTotal)}</p>
+        <p className="text-xs text-[var(--muted)] line-through">Original bidhaa: {formatTZS(originalTotal)}</p>
       </div>
 
       <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
@@ -321,9 +310,13 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
           <span className="font-semibold">Bank Deposit</span>
         </label>
         {paymentMethod === "bank-deposit" ? (
-          <p className="rounded-lg border border-[var(--border)] bg-white p-3 text-xs text-[var(--muted)]">
-            Tutakupigia kukupa maelekezo ya akaunti ya benki na uthibitisho wa malipo baada ya ku-submit oda.
-          </p>
+          <div className="rounded-lg border border-[var(--border)] bg-white p-3 text-xs text-[var(--foreground)]">
+            <p className="font-black text-[var(--primary)]">Bank Details</p>
+            <p className="mt-1"><span className="font-semibold">Bank:</span> {bankDetails.bankName}</p>
+            <p><span className="font-semibold">Account Name:</span> {bankDetails.accountName}</p>
+            <p><span className="font-semibold">A/C Number:</span> {bankDetails.accountNumber}</p>
+            <p className="mt-2 text-[var(--muted)]">Weka kumbukumbu ya transfer, tutathibitisha malipo ndani ya muda mfupi.</p>
+          </div>
         ) : null}
       </div>
 
@@ -368,7 +361,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
 
       <div className="grid grid-cols-2 gap-2">
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Truck className="h-4 w-4 text-[var(--accent)]" /> Gharama ya usafiri hutegemea eneo
+          <Truck className="h-4 w-4 text-[var(--accent)]" /> Shipping imehesabiwa kiotomatiki kwa eneo
         </p>
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
           <Shield className="h-4 w-4 text-[var(--accent)]" /> Malipo salama kwa njia 3
