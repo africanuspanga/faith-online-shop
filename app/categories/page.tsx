@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { categories } from "@/lib/categories";
+import { getCatalogCategories } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Shop by Category | Faith Online Shop",
   description:
-    "Chagua category unayotaka: Electronic, Fashion, Fashion & Accessories, Hardware & Automobile, Health & Beauty, na Home & Living."
+    "Chagua category unayotaka kuona bidhaa zake kwenye Faith Online Shop."
 };
 
-export default function CategoriesIndexPage() {
+export default async function CategoriesIndexPage() {
+  const categories = await getCatalogCategories();
+
   return (
     <section className="space-y-4">
       <h1 className="text-3xl font-black sm:text-4xl">All Categories</h1>

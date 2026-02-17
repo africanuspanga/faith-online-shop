@@ -19,14 +19,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.faithshop.co.tz"),
   title: {
-    default: "Faith Online Shop | Lipa Unapopokea",
+    default: "Faith Online Shop | COD, Pesapal & Bank Deposit",
     template: "%s | Faith Online Shop"
   },
   description:
-    "Nunua electronics, fashion, beauty, home goods na accessories kwa usafirishaji bure Tanzania nzima. Lipa unapopokea.",
+    "Nunua electronics, fashion, beauty, home goods na accessories kwa usafiri wa uhakika Tanzania nzima. Chagua COD, Pesapal, au Bank Deposit.",
   openGraph: {
     title: "Faith Online Shop",
-    description: "Stock ipo tayari. Usafirishaji BURE. Lipa Unapopokea.",
+    description: "Stock ipo tayari. Usafiri Tanzania nzima. COD • Pesapal • Bank Deposit.",
     type: "website",
     url: "https://www.faithshop.co.tz"
   },

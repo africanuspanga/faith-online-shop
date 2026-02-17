@@ -1,5 +1,5 @@
 import type { CategorySlug, SortKey } from "@/lib/types";
-import { categories } from "@/lib/categories";
+import { normalizeCategorySlug } from "@/lib/categories";
 
 const tzsFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
@@ -10,11 +10,15 @@ export const formatTZS = (value: number): string => `TZS ${tzsFormatter.format(v
 
 export const parseCategories = (value: string | null): CategorySlug[] => {
   if (!value) return [];
-  const valid = new Set(categories.map((category) => category.slug));
+  const seen = new Set<string>();
   return value
     .split(",")
-    .map((item) => item.trim())
-    .filter((item): item is CategorySlug => valid.has(item as CategorySlug));
+    .map((item) => normalizeCategorySlug(item))
+    .filter((item): item is CategorySlug => {
+      if (!item || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
 };
 
 export const parseSort = (value: string | null): SortKey => {

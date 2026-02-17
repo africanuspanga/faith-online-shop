@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, LoaderCircle, Shield, Truck } from "lucide-react";
-import type { Product } from "@/lib/types";
+import { Check, CreditCard, LoaderCircle, Shield, Truck, Wallet } from "lucide-react";
+import type { PaymentMethod, Product } from "@/lib/types";
 import { formatTZS } from "@/lib/format";
+import { darDeliveryFeeRange, upcountryFlatShippingFee } from "@/lib/shipping-fees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -51,7 +52,13 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
   const [phone, setPhone] = useState("+255");
   const [regionCity, setRegionCity] = useState("");
   const [address, setAddress] = useState("");
+  const [selectedSize, setSelectedSize] = useState(product.sizeOptions[0] ?? "");
+  const [selectedColor, setSelectedColor] = useState(product.colorOptions[0] ?? "");
   const [selectedPackage, setSelectedPackage] = useState<PackageOption["id"]>("buy-2");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash-on-delivery");
+  const [installmentEnabled, setInstallmentEnabled] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
+  const [installmentNotes, setInstallmentNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   const selected = useMemo(
@@ -62,12 +69,29 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
   const quantity = selected.paidUnits + selected.freeUnits;
   const totalPrice = selected.paidUnits * product.salePrice;
   const originalTotal = quantity * product.originalPrice;
+  const parsedDeposit = Number(depositAmount || 0);
+  const validDeposit = parsedDeposit > 0 && parsedDeposit < totalPrice;
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!customerName || !phone || !regionCity || !address) {
       toast.error("Tafadhali jaza taarifa zote muhimu.");
+      return;
+    }
+
+    if (product.sizeOptions.length && !selectedSize) {
+      toast.error("Tafadhali chagua size.");
+      return;
+    }
+
+    if (product.colorOptions.length && !selectedColor) {
+      toast.error("Tafadhali chagua color.");
+      return;
+    }
+
+    if (installmentEnabled && !validDeposit) {
+      toast.error("Weka kiasi cha awali kilicho chini ya jumla ya oda.");
       return;
     }
 
@@ -89,7 +113,13 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
           customerName,
           phone,
           regionCity,
-          address
+          address,
+          selectedSize,
+          selectedColor,
+          paymentMethod,
+          installmentEnabled,
+          depositAmount: installmentEnabled ? parsedDeposit : 0,
+          installmentNotes
         })
       });
 
@@ -97,6 +127,12 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
 
       if (!response.ok) {
         throw new Error(data.error ?? "Order failed");
+      }
+
+      if (data.status === "payment_required" && data.paymentUrl) {
+        toast.success("Unaelekezwa Pesapal kukamilisha malipo.");
+        window.location.href = data.paymentUrl as string;
+        return;
       }
 
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -141,6 +177,49 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         </label>
         <Textarea id="address" value={address} onChange={(event) => setAddress(event.target.value)} required />
       </div>
+
+      {(product.sizeOptions.length || product.colorOptions.length) ? (
+        <div className="grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 sm:grid-cols-2">
+          {product.sizeOptions.length ? (
+            <div className="space-y-2">
+              <label htmlFor="selected-size" className="text-sm font-semibold">
+                Size
+              </label>
+              <select
+                id="selected-size"
+                value={selectedSize}
+                onChange={(event) => setSelectedSize(event.target.value)}
+                className="h-11 w-full rounded-xl border border-[var(--border)] px-3"
+              >
+                {product.sizeOptions.map((size) => (
+                  <option key={size} value={size}>
+                    {size}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+          {product.colorOptions.length ? (
+            <div className="space-y-2">
+              <label htmlFor="selected-color" className="text-sm font-semibold">
+                Color
+              </label>
+              <select
+                id="selected-color"
+                value={selectedColor}
+                onChange={(event) => setSelectedColor(event.target.value)}
+                className="h-11 w-full rounded-xl border border-[var(--border)] px-3"
+              >
+                {product.colorOptions.map((color) => (
+                  <option key={color} value={color}>
+                    {color}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
         <p className="text-sm font-bold">Quantity Options</p>
@@ -206,19 +285,99 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         <p className="mt-1 text-xs text-[var(--muted)] line-through">Original: {formatTZS(originalTotal)}</p>
       </div>
 
+      <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+        <p className="text-sm font-bold">Mode of Payment</p>
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-white p-3 text-sm">
+          <input
+            type="radio"
+            name="payment-method"
+            checked={paymentMethod === "cash-on-delivery"}
+            onChange={() => setPaymentMethod("cash-on-delivery")}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <Wallet className="h-4 w-4 text-[var(--primary)]" />
+          <span className="font-semibold">Cash on Delivery</span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-white p-3 text-sm">
+          <input
+            type="radio"
+            name="payment-method"
+            checked={paymentMethod === "pesapal"}
+            onChange={() => setPaymentMethod("pesapal")}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <CreditCard className="h-4 w-4 text-[var(--primary)]" />
+          <span className="font-semibold">Pesapal Payment</span>
+        </label>
+        <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-white p-3 text-sm">
+          <input
+            type="radio"
+            name="payment-method"
+            checked={paymentMethod === "bank-deposit"}
+            onChange={() => setPaymentMethod("bank-deposit")}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          <Shield className="h-4 w-4 text-[var(--primary)]" />
+          <span className="font-semibold">Bank Deposit</span>
+        </label>
+        {paymentMethod === "bank-deposit" ? (
+          <p className="rounded-lg border border-[var(--border)] bg-white p-3 text-xs text-[var(--muted)]">
+            Tutakupigia kukupa maelekezo ya akaunti ya benki na uthibitisho wa malipo baada ya ku-submit oda.
+          </p>
+        ) : null}
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
+        <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={installmentEnabled}
+            onChange={(event) => setInstallmentEnabled(event.target.checked)}
+            className="h-4 w-4 accent-[var(--primary)]"
+          />
+          Lipia kidogo kidogo (installment)
+        </label>
+        {installmentEnabled ? (
+          <div className="space-y-2">
+            <Input
+              type="number"
+              min={1}
+              max={Math.max(totalPrice - 1, 1)}
+              placeholder={`Kiasi cha awali, mfano ${Math.floor(totalPrice * 0.3)}`}
+              value={depositAmount}
+              onChange={(event) => setDepositAmount(event.target.value)}
+              required
+            />
+            <Textarea
+              placeholder="Andika maelezo ya ratiba ya malipo (hiari)"
+              value={installmentNotes}
+              onChange={(event) => setInstallmentNotes(event.target.value)}
+              rows={2}
+            />
+            <p className="text-xs text-[var(--muted)]">
+              Salio litatakiwa kulipwa kabla ya kuchukua oda yako.
+            </p>
+          </div>
+        ) : null}
+      </div>
+
       <Button type="submit" className="w-full" size="lg" disabled={loading}>
         {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-        THIBITISHA ORDER - Lipa Unapopokea
+        {paymentMethod === "pesapal" ? "ENDELEA KWENYE PESAPAL" : "THIBITISHA ORDER"}
       </Button>
 
       <div className="grid grid-cols-2 gap-2">
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Truck className="h-4 w-4 text-[var(--accent)]" /> Usafirishaji Bure
+          <Truck className="h-4 w-4 text-[var(--accent)]" /> Gharama ya usafiri hutegemea eneo
         </p>
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Shield className="h-4 w-4 text-[var(--accent)]" /> Lipa Unapopokea
+          <Shield className="h-4 w-4 text-[var(--accent)]" /> Malipo salama kwa njia 3
         </p>
       </div>
+      <p className="text-xs text-[var(--muted)]">
+        Dar: {formatTZS(darDeliveryFeeRange.min)}-{formatTZS(darDeliveryFeeRange.max)} kulingana na area. Mikoani:
+        {formatTZS(upcountryFlatShippingFee)} flat rate.
+      </p>
       <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
         <Check className="h-4 w-4 text-[var(--accent)]" /> Tunakuthibitishia oda kwa simu kabla ya kutuma.
       </p>

@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { isAuthorizedAdminRequest } from "@/lib/admin-auth";
-import { categories } from "@/lib/categories";
+import { normalizeCategorySlug } from "@/lib/categories";
 import { products as staticProducts } from "@/lib/products";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
-const categorySlugs = new Set(categories.map((category) => category.slug));
 const fallbackImage = "/placeholder.svg";
 
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
@@ -48,12 +47,16 @@ type ProductPayload = {
   name: string;
   slug: string;
   category: string;
+  sku: string;
+  brand: string;
   original_price: number;
   sale_price: number;
   image: string;
   in_stock: boolean;
   rating: number;
   gallery: string[];
+  size_options: string[];
+  color_options: string[];
   sold: number;
   is_new: boolean;
   best_selling: boolean;
@@ -64,9 +67,11 @@ type ProductPayload = {
 
 const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
   const name = String(body.name ?? "").trim();
-  const category = String(body.category ?? "").trim();
+  const category = normalizeCategorySlug(String(body.category ?? ""));
   const originalPrice = Number(body.originalPrice ?? 0);
   const salePrice = Number(body.salePrice ?? 0);
+  const sku = String(body.sku ?? "").trim().toUpperCase();
+  const brand = String(body.brand ?? "").trim();
   const image = toAssetPath(String(body.image ?? fallbackImage));
   const inStock = Boolean(body.inStock ?? true);
   const rating = Math.max(0, Math.min(5, Number(body.rating ?? 4.5)));
@@ -77,10 +82,12 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
   const whoForSw = String(body.whoForSw ?? "").trim();
   const benefitsSw = toStringList(body.benefitsSw);
   const gallery = toStringList(body.gallery);
+  const sizeOptions = toStringList(body.sizeOptions);
+  const colorOptions = toStringList(body.colorOptions);
 
   if (
     !name ||
-    !categorySlugs.has(category as (typeof categories)[number]["slug"]) ||
+    !category ||
     originalPrice <= 0 ||
     salePrice <= 0 ||
     salePrice > originalPrice
@@ -92,22 +99,26 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
     name,
     slug: slugify(name),
     category,
+    sku: sku || `SKU-${slugify(name).toUpperCase()}`,
+    brand: brand || "Faith Select",
     original_price: originalPrice,
     sale_price: salePrice,
     image,
     in_stock: inStock,
     rating,
     gallery: (gallery.length ? gallery : [image, image, image]).map((item) => toAssetPath(item)),
+    size_options: sizeOptions,
+    color_options: colorOptions,
     sold,
     is_new: isNew,
     best_selling: bestSelling,
-    description_sw: descriptionSw || "Bidhaa bora kwa matumizi ya kila siku, usafirishaji bure Tanzania nzima.",
+    description_sw: descriptionSw || "Bidhaa bora kwa matumizi ya kila siku, tunafikisha Tanzania nzima kwa gharama nafuu.",
     benefits_sw: benefitsSw.length
       ? benefitsSw
       : [
           "Ubora wa juu uliothibitishwa",
           "Malipo baada ya kupokea bidhaa",
-          "Usafirishaji bure Tanzania nzima"
+          "Tunafikisha oda Tanzania nzima kwa gharama nafuu ya usafiri"
         ],
     who_for_sw: whoForSw || "Inafaa kwa mtu yeyote anayehitaji bidhaa bora kwa bei nafuu."
   };
@@ -312,12 +323,16 @@ export async function PUT(request: Request) {
     name: item.name,
     slug: item.slug,
     category: item.category,
+    sku: item.sku,
+    brand: item.brand,
     original_price: item.originalPrice,
     sale_price: item.salePrice,
     image: item.image,
     in_stock: item.inStock,
     rating: item.rating,
     gallery: item.gallery,
+    size_options: item.sizeOptions,
+    color_options: item.colorOptions,
     sold: item.sold,
     is_new: Boolean(item.isNew),
     best_selling: Boolean(item.bestSelling),

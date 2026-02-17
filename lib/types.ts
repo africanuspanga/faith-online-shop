@@ -1,10 +1,4 @@
-export type CategorySlug =
-  | "electronic"
-  | "fashion"
-  | "fashion-accessories"
-  | "hardware-automobile"
-  | "health-beauty"
-  | "home-living";
+export type CategorySlug = string;
 
 export interface Category {
   slug: CategorySlug;
@@ -18,12 +12,16 @@ export interface Product {
   name: string;
   slug: string;
   category: CategorySlug;
+  sku: string;
+  brand: string;
   originalPrice: number;
   salePrice: number;
   rating: number;
   inStock: boolean;
   image: string;
   gallery: string[];
+  sizeOptions: string[];
+  colorOptions: string[];
   sold: number;
   isNew?: boolean;
   bestSelling?: boolean;
@@ -35,6 +33,8 @@ export interface Product {
 
 export interface FilterState {
   categories: CategorySlug[];
+  sizes: string[];
+  colors: string[];
   minPrice: number;
   maxPrice: number;
   inStockOnly: boolean;
@@ -54,18 +54,42 @@ export type SortKey =
   | "newest"
   | "best-selling";
 
+export type PaymentMethod = "cash-on-delivery" | "pesapal" | "bank-deposit";
+export type PaymentStatus = "unpaid" | "pending" | "partial" | "paid" | "failed" | "pending-verification";
+export type OrderStatus = "pending" | "confirmed" | "delivered" | "cancelled";
+
 export interface OrderPayload {
   productId: string;
+  productName: string;
   quantity: number;
   fullName: string;
   phone: string;
   regionCity: string;
   address: string;
+  selectedSize: string;
+  selectedColor: string;
+  paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  installmentEnabled: boolean;
+  depositAmount: number;
+  installmentNotes: string;
+  paymentReference?: string;
+  paymentTrackingId?: string;
 }
 
 export interface OrderRecord extends OrderPayload {
   id: string;
   createdAt: string;
-  status: "pending" | "confirmed" | "delivered" | "cancelled";
+  status: OrderStatus;
   total: number;
+}
+
+export interface ProductReview {
+  id: string;
+  orderId: string;
+  productId: string;
+  rating: number;
+  comment: string;
+  customerName: string;
+  createdAt: string;
 }

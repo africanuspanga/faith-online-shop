@@ -1,18 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
-import { categories } from "@/lib/categories";
-import { phoneNumber, whatsappLink } from "@/lib/constants";
+import { getCatalogCategories } from "@/lib/catalog";
+import { phoneNumber, serviceHours, shopLocation, whatsappLink } from "@/lib/constants";
 
-export const SiteFooter = () => {
+export const SiteFooter = async () => {
+  const categories = await getCatalogCategories();
+
   return (
     <footer className="mt-14 bg-[#1a1a1a] pb-20 text-white md:pb-10">
       <div className="mx-auto w-full max-w-7xl px-4">
         <div className="grid grid-cols-3 overflow-hidden rounded-b-2xl border-x border-b border-white/15">
           <p className="bg-[var(--primary)] px-3 py-2 text-center text-[11px] font-black uppercase tracking-wide text-white">
-            Lipa Unapopokea
+            COD • Pesapal • Bank
           </p>
           <p className="bg-[var(--secondary)] px-3 py-2 text-center text-[11px] font-black uppercase tracking-wide text-[var(--foreground)]">
-            Usafirishaji Bure
+            Usafiri Tanzania Nzima
           </p>
           <p className="bg-[var(--accent)] px-3 py-2 text-center text-[11px] font-black uppercase tracking-wide text-[var(--foreground)]">
             Stock Ipo Tayari
@@ -24,7 +26,7 @@ export const SiteFooter = () => {
         <section>
           <Image src="/logo-main.png" alt="Faith Online Shop" width={200} height={56} className="h-11 w-auto" />
           <p className="mt-3 text-sm leading-relaxed text-gray-300">
-            Duka la mtandaoni la Tanzania lenye bidhaa bora, usafirishaji bure, na malipo baada ya kupokea.
+            Duka la mtandaoni la Tanzania lenye bidhaa bora, usafiri wa uhakika, na malipo ya njia tofauti.
           </p>
           <p className="mt-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
             Tunahudumia wateja 10,000+ Tanzania
@@ -67,8 +69,8 @@ export const SiteFooter = () => {
                 WhatsApp Support
               </Link>
             </li>
-            <li>Mon - Sun: 08:00 - 22:00</li>
-            <li>Dar es Salaam, Tanzania</li>
+            <li>Mon - Sun: {serviceHours}</li>
+            <li>{shopLocation}</li>
           </ul>
         </section>
       </div>

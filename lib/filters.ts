@@ -22,6 +22,16 @@ export const filterProducts = (products: Product[], filters: FilterState): Filte
     filtered = filtered.filter((item) => filters.categories.includes(item.category));
   }
 
+  if (filters.sizes.length) {
+    const requiredSizes = new Set(filters.sizes.map((item) => item.toLowerCase()));
+    filtered = filtered.filter((item) => item.sizeOptions.some((size) => requiredSizes.has(size.toLowerCase())));
+  }
+
+  if (filters.colors.length) {
+    const requiredColors = new Set(filters.colors.map((item) => item.toLowerCase()));
+    filtered = filtered.filter((item) => item.colorOptions.some((color) => requiredColors.has(color.toLowerCase())));
+  }
+
   if (filters.saleOnly) {
     filtered = filtered.filter((item) => item.salePrice < item.originalPrice);
   }
@@ -38,7 +48,11 @@ export const filterProducts = (products: Product[], filters: FilterState): Filte
 
   if (filters.query.trim().length) {
     const query = filters.query.trim().toLowerCase();
-    filtered = filtered.filter((item) => item.name.toLowerCase().includes(query));
+    filtered = filtered.filter((item) =>
+      item.name.toLowerCase().includes(query) ||
+      item.sku.toLowerCase().includes(query) ||
+      item.brand.toLowerCase().includes(query)
+    );
   }
 
   filtered.sort(sorters[filters.sort]);

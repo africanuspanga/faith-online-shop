@@ -35,6 +35,45 @@ const productImagesById: Record<number, string> = {
   30: "/rgb-led-strip-lights.webp"
 };
 
+const categoryProfiles: Record<string, { brand: string; sizes: string[]; colors: string[]; code: string }> = {
+  electronic: {
+    brand: "Faith Tech",
+    sizes: ["Standard"],
+    colors: ["Black", "White"],
+    code: "ELC"
+  },
+  fashion: {
+    brand: "Faith Wear",
+    sizes: ["S", "M", "L", "XL"],
+    colors: ["Black", "White", "Navy", "Grey"],
+    code: "FSN"
+  },
+  "fashion-accessories": {
+    brand: "Faith Style",
+    sizes: ["Standard"],
+    colors: ["Black", "Brown", "Gold", "Silver"],
+    code: "FAS"
+  },
+  "hardware-automobile": {
+    brand: "Faith Auto",
+    sizes: ["Standard"],
+    colors: ["Black", "Grey", "Red"],
+    code: "HWA"
+  },
+  "health-beauty": {
+    brand: "Faith Care",
+    sizes: ["30ml", "50ml", "200g"],
+    colors: ["Natural", "Classic"],
+    code: "HLB"
+  },
+  "home-living": {
+    brand: "Faith Home",
+    sizes: ["Small", "Medium", "Large"],
+    colors: ["Black", "White", "Blue"],
+    code: "HML"
+  }
+};
+
 const product = (
   id: number,
   name: string,
@@ -50,18 +89,29 @@ const product = (
   bestSelling = false
 ): Product => {
   const image = productImagesById[id] ?? fallbackImage;
+  const profile = categoryProfiles[category] ?? {
+    brand: "Faith Select",
+    sizes: ["Standard"],
+    colors: ["Black"],
+    code: "GEN"
+  };
+  const sku = `${profile.code}-${String(id).padStart(4, "0")}`;
 
   return {
     id: String(id),
     name,
     slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, ""),
     category,
+    sku,
+    brand: profile.brand,
     originalPrice,
     salePrice,
     rating,
     inStock,
     image,
     gallery: [image, image, image],
+    sizeOptions: profile.sizes,
+    colorOptions: profile.colors,
     sold,
     isNew,
     bestSelling,
@@ -69,7 +119,7 @@ const product = (
     benefitsSw: [
       "Ubora wa juu uliothibitishwa",
       "Malipo baada ya kupokea bidhaa",
-      "Usafirishaji bure Tanzania nzima"
+      "Tunafikisha oda Tanzania nzima kwa gharama nafuu ya usafiri"
     ],
     whoForSw,
     createdAt: new Date(2025, 11, id).toISOString()

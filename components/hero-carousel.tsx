@@ -46,10 +46,10 @@ export const HeroCarousel = () => {
           <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-[var(--muted)] sm:mt-3 sm:text-base">{slide.subtitle}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
-              Usafiri BURE
+              Usafiri Tanzania Nzima
             </span>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
-              Lipa Unapopokea
+              COD • Pesapal • Bank Deposit
             </span>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
               Ofa ya Leo
@@ -68,7 +68,7 @@ export const HeroCarousel = () => {
         </article>
         <article className="rounded-xl border border-[var(--foreground)] bg-white p-3">
           <p className="text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Delivery</p>
-          <p className="mt-1 text-sm font-bold">Tunafikisha nchi nzima ndani ya siku chache</p>
+          <p className="mt-1 text-sm font-bold">Tunafikisha nchi nzima ndani ya siku chache kwa gharama nafuu</p>
         </article>
       </aside>
 

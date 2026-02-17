@@ -35,6 +35,10 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         >
           {product.name}
         </Link>
+        <p className="text-[11px] font-semibold text-[var(--muted)]">{product.brand} • {product.sku}</p>
+        <p className="text-[11px] text-[var(--muted)]">
+          Size: {product.sizeOptions.join(", ") || "Standard"} | Color: {product.colorOptions.join(", ") || "Standard"}
+        </p>
         <p className="text-xl font-extrabold text-[var(--primary)]">{formatTZS(product.salePrice)}</p>
         <p className="text-sm text-[var(--muted)] line-through">{formatTZS(product.originalPrice)}</p>
         <StarRating rating={product.rating} />

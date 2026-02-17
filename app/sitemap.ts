@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
-import { categories } from "@/lib/categories";
-import { getCatalogProducts } from "@/lib/catalog";
+import { getCatalogCategories, getCatalogProducts } from "@/lib/catalog";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = "https://www.faithshop.co.tz";
   const products = await getCatalogProducts();
+  const categories = await getCatalogCategories();
   const staticPages = [
     "",
     "/shop",

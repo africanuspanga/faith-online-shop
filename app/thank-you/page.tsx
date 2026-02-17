@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
 import { whatsappLink } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
+import { OrderReviewForm } from "@/components/order-review-form";
 
 export const metadata: Metadata = {
   title: "Order Confirmed | Faith Online Shop",
   description:
-    "Asante kwa kuagiza Faith Online Shop. Oda yako imepokelewa na timu yetu itakupigia kuthibitisha delivery."
+    "Asante kwa kuagiza Faith Online Shop. Oda yako imepokelewa na timu yetu itakupigia kuthibitisha usafirishaji na malipo."
 };
 
 export default async function ThankYouPage({
@@ -22,7 +23,7 @@ export default async function ThankYouPage({
       <CheckCircle2 className="mx-auto h-20 w-20 animate-pulse text-[var(--accent)]" />
       <h1 className="mt-4 text-3xl font-black sm:text-4xl">Thank You. Order Placed Successfully.</h1>
       <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-        Tumepokea oda yako. Timu yetu itakupigia ndani ya masaa 24 kuthibitisha na kupanga delivery.
+        Tumepokea oda yako. Timu yetu itakupigia ndani ya masaa 24 kuthibitisha oda, usafirishaji, na mpango wa malipo.
       </p>
       <div className="mx-auto mt-6 max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left">
         <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Order ID</p>
@@ -30,6 +31,7 @@ export default async function ThankYouPage({
         <p className="mt-3 text-xs uppercase tracking-wide text-[var(--muted)]">Shipping Timeline</p>
         <p className="text-sm font-semibold">Dar es Salaam: 1-2 days</p>
         <p className="text-sm font-semibold">Outside Dar: 2-5 days</p>
+        <p className="mt-2 text-xs text-[var(--muted)]">Gharama ya usafiri hutegemea eneo la mteja.</p>
       </div>
       <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
         <Link href="/" className={buttonVariants()}>
@@ -38,6 +40,16 @@ export default async function ThankYouPage({
         <Link href={whatsappLink} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline" })}>
           Wasiliana WhatsApp
         </Link>
+      </div>
+
+      <div className="mt-8 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left">
+        <h2 className="text-lg font-black">Toa Review Baada ya Oda Kukamilika</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">
+          Ukisha-deliveriwa oda, unaweza kuandika review hapa kusaidia wateja wengine.
+        </p>
+        <div className="mt-3">
+          <OrderReviewForm orderId={order} />
+        </div>
       </div>
     </section>
   );

@@ -4,27 +4,29 @@ import { HeroCarousel } from "@/components/hero-carousel";
 import { ProductCard } from "@/components/product-card";
 import { CategoryShowcase } from "@/components/category-showcase";
 import { TrustBar } from "@/components/trust-bar";
-import { getCatalogProducts } from "@/lib/catalog";
+import { getCatalogCategories, getCatalogProducts } from "@/lib/catalog";
+import { serviceHours } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Faith Online Shop Tanzania | Agiza Sasa, Lipa Ukipokea",
   description:
-    "Faith Online Shop Tanzania: Electronics, Fashion, Beauty, Home & Living. Usafiri BURE Tanzania nzima na malipo ya Lipa Unapopokea."
+    "Faith Online Shop Tanzania: Electronics, Fashion, Beauty, Home & Living. Usafiri wa uhakika Tanzania nzima na malipo COD, Pesapal, au Bank Deposit."
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const products = await getCatalogProducts();
+  const categoryItems = await getCatalogCategories();
   const featured = products.slice(0, 12);
 
   return (
     <div className="space-y-10">
       <HeroCarousel />
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-center text-xs font-semibold text-[var(--foreground)] sm:text-sm">
-        Usafiri BURE Tanzania Nzima | Lipa Unapopokea | Bidhaa Bora Tu
+        Usafiri Tanzania Nzima | COD • Pesapal • Bank Deposit | Bidhaa Bora Tu
       </section>
-      <CategoryNav />
+      <CategoryNav items={categoryItems} />
 
       <section aria-labelledby="featured-title">
         <div className="mb-4 flex items-end justify-between">
@@ -48,8 +50,8 @@ export default async function HomePage() {
       <section className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
         <div className="grid gap-2 text-xs font-bold uppercase tracking-wide text-[var(--foreground)] sm:grid-cols-3 sm:text-sm">
           <p className="rounded-xl bg-white px-3 py-2 text-center">Cash on Delivery</p>
-          <p className="rounded-xl bg-white px-3 py-2 text-center">Free Delivery Across Tanzania</p>
-          <p className="rounded-xl bg-white px-3 py-2 text-center">Customer Support 24/7</p>
+          <p className="rounded-xl bg-white px-3 py-2 text-center">Usafiri wa Uhakika Tanzania Nzima</p>
+          <p className="rounded-xl bg-white px-3 py-2 text-center">Customer Support {serviceHours}</p>
         </div>
       </section>
 

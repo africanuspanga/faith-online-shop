@@ -18,6 +18,10 @@ export const ProductListItem = ({ product }: { product: Product }) => {
         <Link href={`/checkout/${product.id}`} className="line-clamp-2 text-sm font-semibold leading-relaxed">
           {product.name}
         </Link>
+        <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{product.brand} • {product.sku}</p>
+        <p className="text-[11px] text-[var(--muted)]">
+          Size: {product.sizeOptions.join(", ") || "Standard"} | Color: {product.colorOptions.join(", ") || "Standard"}
+        </p>
         <StarRating rating={product.rating} className="mt-2" />
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <p className="text-xl font-extrabold text-[var(--primary)]">{formatTZS(product.salePrice)}</p>

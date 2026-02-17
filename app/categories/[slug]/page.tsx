@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { categoryMap, categories } from "@/lib/categories";
-import { getCatalogProducts } from "@/lib/catalog";
+import { categories } from "@/lib/categories";
+import { getCatalogCategories, getCatalogProducts } from "@/lib/catalog";
 import type { CategorySlug } from "@/lib/types";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { ShopView } from "@/components/shop-view";
@@ -16,7 +16,8 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const category = categoryMap.get(slug as CategorySlug);
+  const catalogCategories = await getCatalogCategories();
+  const category = catalogCategories.find((item) => item.slug === (slug as CategorySlug));
 
   if (!category) {
     return { title: "Category Not Found" };
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
   return {
     title: `${category.label} | Faith Online Shop`,
-    description: `${category.description} Nunua ${category.label} kwa usafiri BURE na Lipa Unapopokea Tanzania nzima.`
+    description: `${category.description} Nunua ${category.label} kwa usafiri wa uhakika Tanzania nzima na chagua njia ya malipo unayotaka.`
   };
 }
 
@@ -32,7 +33,8 @@ export const dynamic = "force-dynamic";
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params;
-  const category = categoryMap.get(slug as CategorySlug);
+  const catalogCategories = await getCatalogCategories();
+  const category = catalogCategories.find((item) => item.slug === (slug as CategorySlug));
   const products = await getCatalogProducts();
 
   if (!category) {

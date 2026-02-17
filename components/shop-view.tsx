@@ -22,6 +22,25 @@ interface ShopViewProps {
 const MIN_PRICE = 0;
 const MAX_PRICE = 500000;
 
+const parseFacetValues = (value: string | null): string[] => {
+  if (!value) return [];
+  const seen = new Set<string>();
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => {
+      if (!item || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+};
+
+const slugToLabel = (value: string) =>
+  value
+    .split("-")
+    .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+    .join(" ");
+
 export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -29,12 +48,42 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const availableCategories = useMemo(
+    () => {
+      const map = new Map<string, string>();
+      categories.forEach((category) => map.set(category.slug, category.label));
+      products.forEach((product) => {
+        if (!map.has(product.category)) {
+          map.set(product.category, slugToLabel(product.category));
+        }
+      });
+      return [...map.entries()].map(([slug, label]) => ({ slug, label }));
+    },
+    [products]
+  );
+
+  const availableSizes = useMemo(
+    () =>
+      [...new Set(products.flatMap((product) => product.sizeOptions.map((item) => item.trim())).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
+
+  const availableColors = useMemo(
+    () =>
+      [...new Set(products.flatMap((product) => product.colorOptions.map((item) => item.trim())).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b)),
+    [products]
+  );
+
   const filters = useMemo<FilterState>(() => {
     const selectedCategories = parseCategories(searchParams.get("category"));
     const forcedCategories = forcedCategory ? [forcedCategory] : selectedCategories;
 
     return {
       categories: forcedCategories,
+      sizes: parseFacetValues(searchParams.get("size")),
+      colors: parseFacetValues(searchParams.get("color")),
       saleOnly: searchParams.get("sale") === "1",
       inStockOnly: searchParams.get("stock") === "1",
       minPrice: clamp(toPositiveNumber(searchParams.get("min"), MIN_PRICE), MIN_PRICE, MAX_PRICE),
@@ -58,6 +107,8 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
 
   const activeFilterCount =
     (forcedCategory ? 0 : filters.categories.length) +
+    filters.sizes.length +
+    filters.colors.length +
     (filters.saleOnly ? 1 : 0) +
     (filters.inStockOnly ? 1 : 0) +
     (filters.minRating > 0 ? 1 : 0) +
@@ -94,12 +145,36 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
     });
   };
 
+  const toggleSize = (value: string) => {
+    const next = filters.sizes.includes(value)
+      ? filters.sizes.filter((item) => item !== value)
+      : [...filters.sizes, value];
+
+    updateParams({
+      size: next.length ? next.join(",") : null,
+      page: "1"
+    });
+  };
+
+  const toggleColor = (value: string) => {
+    const next = filters.colors.includes(value)
+      ? filters.colors.filter((item) => item !== value)
+      : [...filters.colors, value];
+
+    updateParams({
+      color: next.length ? next.join(",") : null,
+      page: "1"
+    });
+  };
+
   const clearFilters = () => {
     updateParams({
       category: forcedCategory ? forcedCategory : null,
       sale: null,
       stock: null,
       rating: null,
+      size: null,
+      color: null,
       min: null,
       max: null,
       sort: null,
@@ -116,7 +191,7 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
         <section>
           <h3 className="text-sm font-bold uppercase tracking-wide">Category</h3>
           <div className="mt-3 grid grid-cols-1 gap-2">
-            {categories.map((category) => (
+            {availableCategories.map((category) => (
               <button
                 key={category.slug}
                 type="button"
@@ -131,6 +206,56 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
                 {filters.categories.includes(category.slug) ? <span className="text-xs font-black">ON</span> : null}
               </button>
             ))}
+          </div>
+        </section>
+      ) : null}
+
+      {availableSizes.length ? (
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wide">Size</h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {availableSizes.map((size) => {
+              const active = filters.sizes.includes(size);
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => toggleSize(size)}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
+                    active
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] bg-white text-[var(--foreground)] hover:border-[var(--primary)]/50"
+                  }`}
+                >
+                  {size}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
+
+      {availableColors.length ? (
+        <section>
+          <h3 className="text-sm font-bold uppercase tracking-wide">Color</h3>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {availableColors.map((color) => {
+              const active = filters.colors.includes(color);
+              return (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => toggleColor(color)}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold transition ${
+                    active
+                      ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                      : "border-[var(--border)] bg-white text-[var(--foreground)] hover:border-[var(--primary)]/50"
+                  }`}
+                >
+                  {color}
+                </button>
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -230,7 +355,7 @@ export const ShopView = ({ products, forcedCategory }: ShopViewProps) => {
     <div className="space-y-5">
       {!forcedCategory ? (
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {categories.map((category) => {
+          {availableCategories.map((category) => {
             const active = filters.categories.includes(category.slug);
             return (
               <button

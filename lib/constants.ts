@@ -2,6 +2,8 @@ import { Truck, Shield, Phone, Clock } from "lucide-react";
 
 export const phoneNumber = "+255653670590";
 export const whatsappLink = "https://wa.me/255653670590";
+export const serviceHours = "09:00 - 19:00";
+export const shopLocation = "Mnazi Mmoja Opposite NBC Bank Dsm, Tanzania";
 
 export const heroSlides = [
   {
@@ -13,8 +15,8 @@ export const heroSlides = [
   },
   {
     id: 2,
-    title: "Usafiri BURE Tanzania Nzima",
-    subtitle: "Kutoka Dar es Salaam hadi mikoani, tunafikisha haraka",
+    title: "Usafiri wa Haraka Tanzania Nzima",
+    subtitle: "Kutoka Dar es Salaam hadi mikoani, tunafikisha kwa uhakika na gharama nafuu",
     cta: "Anza Kuagiza",
     image: "/slide-02.jpg"
   },
@@ -28,8 +30,8 @@ export const heroSlides = [
 ] as const;
 
 export const trustItems = [
-  { label: "Usafirishaji Bure", icon: Truck },
-  { label: "Lipa Unapopokea", icon: Shield },
-  { label: "Huduma Masaa 24/7", icon: Clock },
+  { label: "Usafiri wa Uhakika", icon: Truck },
+  { label: "Malipo Njia 3", icon: Shield },
+  { label: `Huduma ${serviceHours}`, icon: Clock },
   { label: "Wasiliana Sasa", icon: Phone }
 ] as const;

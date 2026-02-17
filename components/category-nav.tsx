@@ -1,8 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { categories } from "@/lib/categories";
+import type { Category } from "@/lib/types";
 
-export const CategoryNav = () => {
+type CategoryNavProps = {
+  items?: Category[];
+};
+
+export const CategoryNav = ({ items = categories }: CategoryNavProps) => {
   return (
     <section aria-labelledby="category-title" className="py-6">
       <div className="mb-4 flex items-end justify-between">
@@ -14,7 +19,7 @@ export const CategoryNav = () => {
         </Link>
       </div>
       <div className="flex gap-4 overflow-x-auto pb-2">
-        {categories.map((category) => (
+        {items.map((category) => (
           <Link key={category.slug} href={`/categories/${category.slug}`} className="group min-w-20 text-center">
             <div className="relative mx-auto h-20 w-20 overflow-hidden rounded-full border-2 border-[var(--border)] transition-all duration-200 group-hover:scale-105 group-hover:border-[var(--primary)] group-hover:shadow-[0_8px_20px_rgba(244,94,2,0.12)]">
               <Image

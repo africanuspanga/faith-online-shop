@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clock, MapPin, MessageCircle, Phone, Shield } from "lucide-react";
 import { ContactForm } from "@/components/contact-form";
-import { phoneNumber, whatsappLink } from "@/lib/constants";
+import { phoneNumber, serviceHours, shopLocation, whatsappLink } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Contact Faith Online Shop Tanzania",
   description:
-    "Wasiliana na Faith Online Shop kupitia simu au WhatsApp kwa maswali ya oda, usafiri, au bidhaa. Tunapatikana kila siku."
+    "Wasiliana na Faith Online Shop kupitia simu au WhatsApp kwa maswali ya oda, usafiri, au bidhaa. Tunapatikana kila siku 09:00-19:00."
 };
 
 export default function ContactPage() {
@@ -17,7 +17,7 @@ export default function ContactPage() {
         <p className="text-xs font-black uppercase tracking-wide text-[var(--primary)]">Customer Support</p>
         <h1 className="mt-2 text-3xl font-black leading-tight sm:text-4xl">Wasiliana na Faith Online Shop</h1>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
-          Tuna timu ya huduma kwa wateja inayojibu haraka kuhusu oda, delivery, na maelezo ya bidhaa. Chagua njia
+          Tuna timu ya huduma kwa wateja inayojibu haraka kuhusu oda, usafirishaji, na maelezo ya bidhaa. Chagua njia
           rahisi kwako hapa chini.
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
@@ -55,14 +55,14 @@ export default function ContactPage() {
               <Clock className="mt-0.5 h-4 w-4 text-[var(--primary)]" />
               <div>
                 <p className="text-xs font-bold uppercase text-[var(--muted)]">Muda wa Huduma</p>
-                <p className="text-sm font-semibold">Mon - Sun: 08:00 - 22:00</p>
+                <p className="text-sm font-semibold">Mon - Sun: {serviceHours}</p>
               </div>
             </div>
             <div className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
               <MapPin className="mt-0.5 h-4 w-4 text-[var(--primary)]" />
               <div>
                 <p className="text-xs font-bold uppercase text-[var(--muted)]">Location</p>
-                <p className="text-sm font-semibold">Dar es Salaam, Tanzania</p>
+                <p className="text-sm font-semibold">{shopLocation}</p>
               </div>
             </div>
           </div>
