@@ -39,6 +39,8 @@ export const SiteFooter = async () => {
             <li><Link href="/" className="transition hover:text-[var(--secondary)]">Home</Link></li>
             <li><Link href="/shop" className="transition hover:text-[var(--secondary)]">All Products</Link></li>
             <li><Link href="/categories" className="transition hover:text-[var(--secondary)]">Categories</Link></li>
+            <li><Link href="/cart" className="transition hover:text-[var(--secondary)]">Cart</Link></li>
+            <li><Link href="/account" className="transition hover:text-[var(--secondary)]">Track Orders</Link></li>
             <li><Link href="/contact" className="transition hover:text-[var(--secondary)]">Contact</Link></li>
             <li><Link href="/shipping-policy" className="transition hover:text-[var(--secondary)]">Shipping Policy</Link></li>
           </ul>

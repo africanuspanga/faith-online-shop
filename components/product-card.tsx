@@ -1,15 +1,31 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import type { Product } from "@/lib/types";
 import { formatTZS } from "@/lib/format";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { StarRating } from "@/components/star-rating";
+import { useCart } from "@/components/cart-provider";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
+  const { addToCart } = useCart();
+  const [adding, setAdding] = useState(false);
+
+  const onAdd = async () => {
+    setAdding(true);
+    try {
+      await addToCart(product, 1);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-[var(--border)] bg-white shadow-[0_2px_0_rgba(26,26,26,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(244,94,2,0.12)]">
       <div className="relative overflow-hidden border-b border-[var(--border)]">
@@ -50,9 +66,14 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         <p className="text-sm text-[var(--muted)] line-through">{formatTZS(product.originalPrice)}</p>
         <StarRating rating={product.rating} />
         <p className="text-xs font-semibold text-[var(--muted)]">{product.sold} sold</p>
-        <Link href={`/checkout/${product.id}`} className={`${buttonVariants({ variant: "outline" })} mt-auto w-full`}>
-          Order Now
-        </Link>
+        <div className="mt-auto grid grid-cols-2 gap-2">
+          <Button type="button" variant="outline" onClick={() => void onAdd()} disabled={adding}>
+            {adding ? "Adding..." : "Add To Cart"}
+          </Button>
+          <Link href={`/checkout/${product.id}`} className={`${buttonVariants()} w-full`}>
+            Order Now
+          </Link>
+        </div>
       </div>
     </article>
   );

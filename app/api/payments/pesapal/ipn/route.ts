@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import { memoryOrders } from "@/lib/memory-store";
+import { isMissingColumnError } from "@/lib/db-errors";
+import { memoryOrderPayments } from "@/lib/memory-store";
+import { refreshOrderPaymentSummary } from "@/lib/order-payment-sync";
 import { getPesapalTransactionStatus } from "@/lib/pesapal";
 import { getSupabaseServerClient } from "@/lib/supabase";
+
+const isMissingRelationError = (message: string) =>
+  /relation .* does not exist/i.test(message) || /could not find .* relation/i.test(message);
 
 const pick = (url: URL, keys: string[]) => {
   for (const key of keys) {
@@ -11,43 +16,75 @@ const pick = (url: URL, keys: string[]) => {
   return "";
 };
 
-const updateOrderPayment = async (orderId: string, trackingId: string, paymentStatus: "paid" | "pending") => {
-  const supabase = getSupabaseServerClient();
-  if (supabase) {
-    await supabase
-      .from("orders")
-      .update({
-        payment_status: paymentStatus,
-        payment_tracking_id: trackingId,
-        payment_reference: orderId
-      })
-      .eq("id", orderId);
-    return;
-  }
-
-  const order = memoryOrders.find((item) => item.id === orderId);
-  if (order) {
-    order.paymentStatus = paymentStatus;
-    order.paymentTrackingId = trackingId;
-    order.paymentReference = orderId;
-  }
-};
-
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const trackingId = pick(url, ["OrderTrackingId", "orderTrackingId", "trackingId"]);
-  const orderId = pick(url, ["OrderMerchantReference", "merchantReference", "order", "id"]);
+  const merchantReference = pick(url, ["OrderMerchantReference", "merchantReference", "id"]);
+  const orderId = pick(url, ["order", "orderId", "OrderId"]);
+  const paymentId = pick(url, ["payment", "paymentId", "PaymentId"]);
 
-  if (!trackingId || !orderId) {
-    return NextResponse.json({ received: false, message: "Missing tracking/order reference" }, { status: 400 });
+  if (!trackingId) {
+    return NextResponse.json({ received: false, message: "Missing tracking id" }, { status: 400 });
   }
 
   try {
     const transaction = await getPesapalTransactionStatus(trackingId);
     const paymentStatus = transaction.isPaid ? "paid" : "pending";
-    await updateOrderPayment(orderId, trackingId, paymentStatus);
 
-    return NextResponse.json({ received: true, orderId, trackingId, paymentStatus });
+    const resolvedPaymentId = paymentId || merchantReference || "";
+
+    const supabase = getSupabaseServerClient();
+    if (supabase && resolvedPaymentId) {
+      const updateResult = await supabase
+        .from("order_payments")
+        .update({
+          status: paymentStatus,
+          tracking_id: trackingId,
+          reference: merchantReference || resolvedPaymentId,
+          paid_at: paymentStatus === "paid" ? new Date().toISOString() : null
+        })
+        .eq("id", resolvedPaymentId)
+        .select("order_id")
+        .single();
+
+      if (updateResult.error) {
+        if (!isMissingRelationError(updateResult.error.message) && !isMissingColumnError(updateResult.error.message)) {
+          return NextResponse.json({ received: false, error: updateResult.error.message }, { status: 500 });
+        }
+      }
+
+      const resolvedOrderId = String(updateResult.data?.order_id ?? orderId);
+      const summary = resolvedOrderId ? await refreshOrderPaymentSummary(resolvedOrderId) : null;
+
+      return NextResponse.json({
+        received: true,
+        orderId: resolvedOrderId,
+        paymentId: resolvedPaymentId,
+        trackingId,
+        paymentStatus: summary?.paymentStatus ?? paymentStatus
+      });
+    }
+
+    const memoryPayment = memoryOrderPayments.find((item) => item.id === resolvedPaymentId);
+    if (memoryPayment) {
+      memoryPayment.status = paymentStatus;
+      memoryPayment.trackingId = trackingId;
+      memoryPayment.reference = merchantReference || resolvedPaymentId;
+      if (paymentStatus === "paid") {
+        memoryPayment.paidAt = new Date().toISOString();
+      }
+    }
+
+    const resolvedOrderId = memoryPayment?.orderId ?? orderId;
+    const summary = resolvedOrderId ? await refreshOrderPaymentSummary(resolvedOrderId) : null;
+
+    return NextResponse.json({
+      received: true,
+      orderId: resolvedOrderId,
+      paymentId: resolvedPaymentId,
+      trackingId,
+      paymentStatus: summary?.paymentStatus ?? paymentStatus
+    });
   } catch (error) {
     return NextResponse.json(
       { received: false, error: error instanceof Error ? error.message : "Unable to process notification" },

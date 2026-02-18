@@ -45,6 +45,9 @@ export default async function ThankYouPage({
         <Link href="/" className={buttonVariants()}>
           Continue Shopping
         </Link>
+        <Link href="/account" className={buttonVariants({ variant: "secondary" })}>
+          Track My Order
+        </Link>
         <Link href={whatsappLink} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline" })}>
           Wasiliana WhatsApp
         </Link>

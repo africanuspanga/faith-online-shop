@@ -36,8 +36,10 @@ create table if not exists public.orders (
   product_id text,
   product_name text,
   quantity integer not null check (quantity > 0),
+  order_items jsonb not null default '[]'::jsonb,
   full_name text not null,
   phone text not null,
+  phone_normalized text not null default '',
   region_city text not null,
   address text not null,
   selected_size text not null default '',
@@ -50,10 +52,27 @@ create table if not exists public.orders (
   subtotal numeric(12,2) not null default 0 check (subtotal >= 0),
   shipping_fee numeric(12,2) not null default 0 check (shipping_fee >= 0),
   shipping_label text not null default '',
+  shipping_adjustment numeric(12,2) not null default 0,
+  shipping_adjustment_note text not null default '',
+  amount_paid numeric(12,2) not null default 0 check (amount_paid >= 0),
   payment_reference text,
   payment_tracking_id text,
+  last_payment_at timestamptz,
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'delivered', 'cancelled')),
   total numeric(12,2) not null check (total >= 0),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.order_payments (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.orders(id) on delete cascade,
+  amount numeric(12,2) not null check (amount > 0),
+  method text not null default 'manual' check (method in ('cash-on-delivery', 'pesapal', 'bank-deposit', 'manual')),
+  status text not null default 'pending' check (status in ('unpaid', 'pending', 'partial', 'paid', 'failed', 'pending-verification')),
+  reference text,
+  tracking_id text,
+  notes text not null default '',
+  paid_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -139,8 +158,10 @@ from sku_duplicates d
 where p.id = d.id and d.rn > 1;
 
 alter table public.orders alter column product_id type text using product_id::text;
+alter table public.orders add column if not exists order_items jsonb not null default '[]'::jsonb;
 alter table public.orders add column if not exists selected_size text not null default '';
 alter table public.orders add column if not exists selected_color text not null default '';
+alter table public.orders add column if not exists phone_normalized text not null default '';
 alter table public.orders add column if not exists payment_method text not null default 'cash-on-delivery';
 alter table public.orders add column if not exists payment_status text not null default 'unpaid';
 alter table public.orders add column if not exists installment_enabled boolean not null default false;
@@ -149,8 +170,29 @@ alter table public.orders add column if not exists installment_notes text not nu
 alter table public.orders add column if not exists subtotal numeric(12,2) not null default 0;
 alter table public.orders add column if not exists shipping_fee numeric(12,2) not null default 0;
 alter table public.orders add column if not exists shipping_label text not null default '';
+alter table public.orders add column if not exists shipping_adjustment numeric(12,2) not null default 0;
+alter table public.orders add column if not exists shipping_adjustment_note text not null default '';
+alter table public.orders add column if not exists amount_paid numeric(12,2) not null default 0;
 alter table public.orders add column if not exists payment_reference text;
 alter table public.orders add column if not exists payment_tracking_id text;
+alter table public.orders add column if not exists last_payment_at timestamptz;
+
+update public.orders
+set phone_normalized = regexp_replace(coalesce(phone, ''), '[^0-9]+', '', 'g')
+where coalesce(phone_normalized, '') = '';
+
+create table if not exists public.order_payments (
+  id uuid primary key default gen_random_uuid(),
+  order_id uuid not null references public.orders(id) on delete cascade,
+  amount numeric(12,2) not null check (amount > 0),
+  method text not null default 'manual',
+  status text not null default 'pending',
+  reference text,
+  tracking_id text,
+  notes text not null default '',
+  paid_at timestamptz,
+  created_at timestamptz not null default now()
+);
 
 do $$
 begin
@@ -169,6 +211,22 @@ begin
       add constraint orders_payment_status_check
       check (payment_status in ('unpaid', 'pending', 'partial', 'paid', 'failed', 'pending-verification'));
   end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'order_payments_method_check'
+  ) then
+    alter table public.order_payments
+      add constraint order_payments_method_check
+      check (method in ('cash-on-delivery', 'pesapal', 'bank-deposit', 'manual'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint where conname = 'order_payments_status_check'
+  ) then
+    alter table public.order_payments
+      add constraint order_payments_status_check
+      check (status in ('unpaid', 'pending', 'partial', 'paid', 'failed', 'pending-verification'));
+  end if;
 end
 $$;
 
@@ -178,6 +236,9 @@ create index if not exists idx_orders_created_at on public.orders(created_at des
 create index if not exists idx_orders_status on public.orders(status);
 create index if not exists idx_orders_payment_status on public.orders(payment_status);
 create index if not exists idx_orders_payment_reference on public.orders(payment_reference);
+create index if not exists idx_orders_phone_normalized on public.orders(phone_normalized);
+create index if not exists idx_order_payments_order on public.order_payments(order_id, created_at desc);
+create index if not exists idx_order_payments_tracking on public.order_payments(tracking_id);
 
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
@@ -185,6 +246,7 @@ on conflict (id) do nothing;
 
 alter table public.products enable row level security;
 alter table public.orders enable row level security;
+alter table public.order_payments enable row level security;
 alter table public.reviews enable row level security;
 alter table public.customer_signups enable row level security;
 alter table public.site_visits enable row level security;

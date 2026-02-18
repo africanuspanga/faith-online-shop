@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
-import { memoryOrders } from "@/lib/memory-store";
+import { isMissingColumnError } from "@/lib/db-errors";
+import { memoryOrderPayments } from "@/lib/memory-store";
+import { refreshOrderPaymentSummary } from "@/lib/order-payment-sync";
 import { getPesapalTransactionStatus } from "@/lib/pesapal";
 import { getSupabaseServerClient } from "@/lib/supabase";
+
+const isMissingRelationError = (message: string) =>
+  /relation .* does not exist/i.test(message) || /could not find .* relation/i.test(message);
 
 const getParam = (url: URL, keys: string[]) => {
   for (const key of keys) {
@@ -14,44 +19,88 @@ const getParam = (url: URL, keys: string[]) => {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const trackingId = getParam(url, ["OrderTrackingId", "orderTrackingId", "trackingId"]);
-  const merchantReference = getParam(url, ["OrderMerchantReference", "merchantReference", "order", "id"]);
+  const merchantReference = getParam(url, ["OrderMerchantReference", "merchantReference", "id"]);
+  const orderId = getParam(url, ["order", "orderId", "OrderId"]);
+  const paymentId = getParam(url, ["payment", "paymentId", "PaymentId"]);
 
-  if (!trackingId || !merchantReference) {
-    return NextResponse.redirect(new URL(`/thank-you?order=${encodeURIComponent(merchantReference || "unknown")}&payment=pesapal&status=failed`, url.origin));
+  if (!trackingId) {
+    return NextResponse.redirect(
+      new URL(`/thank-you?order=${encodeURIComponent(orderId || "unknown")}&payment=pesapal&status=failed`, url.origin)
+    );
   }
 
   try {
     const transaction = await getPesapalTransactionStatus(trackingId);
     const paymentStatus = transaction.isPaid ? "paid" : "pending";
 
+    const resolvedOrderId = orderId || "";
+    const resolvedPaymentId = paymentId || merchantReference || "";
+
     const supabase = getSupabaseServerClient();
-    if (supabase) {
-      await supabase
-        .from("orders")
+
+    if (supabase && resolvedPaymentId) {
+      const updateResult = await supabase
+        .from("order_payments")
         .update({
-          payment_status: paymentStatus,
-          payment_tracking_id: trackingId,
-          payment_reference: merchantReference
+          status: paymentStatus,
+          tracking_id: trackingId,
+          reference: merchantReference || resolvedPaymentId,
+          paid_at: paymentStatus === "paid" ? new Date().toISOString() : null
         })
-        .eq("id", merchantReference);
-    } else {
-      const order = memoryOrders.find((item) => item.id === merchantReference);
-      if (order) {
-        order.paymentStatus = paymentStatus;
-        order.paymentTrackingId = trackingId;
-        order.paymentReference = merchantReference;
+        .eq("id", resolvedPaymentId)
+        .select("order_id")
+        .single();
+
+      if (updateResult.error && !isMissingRelationError(updateResult.error.message) && !isMissingColumnError(updateResult.error.message)) {
+        return NextResponse.redirect(
+          new URL(
+            `/thank-you?order=${encodeURIComponent(resolvedOrderId || "unknown")}&payment=pesapal&status=failed`,
+            url.origin
+          )
+        );
       }
+
+      const nextOrderId = String(updateResult.data?.order_id ?? resolvedOrderId);
+      const summary = nextOrderId ? await refreshOrderPaymentSummary(nextOrderId) : null;
+      const status = summary?.paymentStatus ?? paymentStatus;
+
+      return NextResponse.redirect(
+        new URL(
+          `/thank-you?order=${encodeURIComponent(nextOrderId || "unknown")}&payment=pesapal&status=${encodeURIComponent(status)}`,
+          url.origin
+        )
+      );
+    }
+
+    if (resolvedPaymentId) {
+      const payment = memoryOrderPayments.find((item) => item.id === resolvedPaymentId);
+      if (payment) {
+        payment.status = paymentStatus;
+        payment.trackingId = trackingId;
+        payment.reference = merchantReference || resolvedPaymentId;
+        if (paymentStatus === "paid") {
+          payment.paidAt = new Date().toISOString();
+        }
+      }
+
+      const nextOrderId = payment?.orderId ?? resolvedOrderId;
+      const summary = nextOrderId ? await refreshOrderPaymentSummary(nextOrderId) : null;
+      const status = summary?.paymentStatus ?? paymentStatus;
+
+      return NextResponse.redirect(
+        new URL(
+          `/thank-you?order=${encodeURIComponent(nextOrderId || "unknown")}&payment=pesapal&status=${encodeURIComponent(status)}`,
+          url.origin
+        )
+      );
     }
 
     return NextResponse.redirect(
-      new URL(
-        `/thank-you?order=${encodeURIComponent(merchantReference)}&payment=pesapal&status=${encodeURIComponent(paymentStatus)}`,
-        url.origin
-      )
+      new URL(`/thank-you?order=${encodeURIComponent(resolvedOrderId || "unknown")}&payment=pesapal&status=failed`, url.origin)
     );
   } catch {
     return NextResponse.redirect(
-      new URL(`/thank-you?order=${encodeURIComponent(merchantReference)}&payment=pesapal&status=failed`, url.origin)
+      new URL(`/thank-you?order=${encodeURIComponent(orderId || "unknown")}&payment=pesapal&status=failed`, url.origin)
     );
   }
 }

@@ -116,6 +116,24 @@ const escapeHtml = (value: string) =>
     .replaceAll("\"", "&quot;")
     .replaceAll("'", "&#039;");
 
+const getOrderAmountPaid = (order: AdminOrder) => {
+  const fallback =
+    order.paymentStatus === "paid"
+      ? Number(order.total || 0)
+      : order.paymentStatus === "partial"
+        ? Number(order.depositAmount || 0)
+        : 0;
+  const value = Number(order.amountPaid ?? fallback);
+  return Number.isFinite(value) ? value : fallback;
+};
+
+const getOrderBalance = (order: AdminOrder) => {
+  const fallback = Math.max(Number(order.total || 0) - getOrderAmountPaid(order), 0);
+  const value = Number(order.balanceDue ?? fallback);
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(value, 0);
+};
+
 const fetcher = async ([url, adminPassword]: [string, string]) => {
   const response = await fetch(url, {
     headers: {
@@ -226,9 +244,10 @@ export const AdminDashboard = () => {
     const pending = orders.filter((order) => order.status === "pending").length;
     const confirmed = orders.filter((order) => order.status === "confirmed").length;
     const delivered = orders.filter((order) => order.status === "delivered").length;
-    const revenue = orders.reduce((sum, order) => sum + Number(order.total), 0);
+    const revenue = orders.reduce((sum, order) => sum + getOrderAmountPaid(order), 0);
+    const outstanding = orders.reduce((sum, order) => sum + getOrderBalance(order), 0);
 
-    return { totalOrders, pending, confirmed, delivered, revenue };
+    return { totalOrders, pending, confirmed, delivered, revenue, outstanding };
   }, [orders]);
 
   const logout = () => {
@@ -439,6 +458,11 @@ export const AdminDashboard = () => {
     updates: {
       status?: AdminOrder["status"];
       paymentStatus?: PaymentStatus;
+      paymentAmount?: number;
+      paymentMethod?: "manual" | "cash-on-delivery" | "bank-deposit" | "pesapal";
+      paymentNote?: string;
+      shippingAdjustment?: number;
+      shippingAdjustmentNote?: string;
     }
   ) => {
     setUpdatingOrderId(order.id);
@@ -453,7 +477,12 @@ export const AdminDashboard = () => {
         body: JSON.stringify({
           orderId: order.id,
           status: updates.status ?? order.status,
-          paymentStatus: updates.paymentStatus ?? order.paymentStatus
+          paymentStatus: updates.paymentStatus,
+          paymentAmount: updates.paymentAmount,
+          paymentMethod: updates.paymentMethod,
+          paymentNote: updates.paymentNote,
+          shippingAdjustment: updates.shippingAdjustment,
+          shippingAdjustmentNote: updates.shippingAdjustmentNote
         })
       });
 
@@ -471,6 +500,57 @@ export const AdminDashboard = () => {
     }
   };
 
+  const recordOrderPayment = async (order: AdminOrder) => {
+    const currentBalance = getOrderBalance(order);
+    if (currentBalance <= 0) {
+      toast.info("Order hii tayari imelipwa yote.");
+      return;
+    }
+
+    const amountInput = window.prompt(
+      `Weka kiasi kilichopokelewa (balance ${formatTZS(currentBalance)}):`,
+      String(Math.floor(currentBalance))
+    );
+    if (!amountInput) return;
+
+    const amount = Number(amountInput);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error("Kiasi si sahihi.");
+      return;
+    }
+
+    const note = window.prompt("Maelezo ya malipo (hiari):", "Payment received by admin") ?? "";
+
+    await updateOrder(order, {
+      paymentAmount: amount,
+      paymentMethod: "manual",
+      paymentNote: note
+    });
+  };
+
+  const adjustFreight = async (order: AdminOrder) => {
+    const currentAdjustment = Number(order.shippingAdjustment || 0);
+    const input = window.prompt(
+      "Weka shipping adjustment mpya (unaweza kuweka negative):",
+      String(currentAdjustment)
+    );
+    if (input === null) return;
+
+    const shippingAdjustment = Number(input);
+    if (!Number.isFinite(shippingAdjustment)) {
+      toast.error("Shipping adjustment si sahihi.");
+      return;
+    }
+
+    const note =
+      window.prompt("Andika sababu ya adjustment (hiari):", order.shippingAdjustmentNote || "") ?? "";
+
+    await updateOrder(order, {
+      shippingAdjustment,
+      shippingAdjustmentNote: note
+    });
+  };
+
   const printOrder = (order: AdminOrder) => {
     const printWindow = window.open("", "_blank", "width=960,height=720");
     if (!printWindow) {
@@ -484,6 +564,27 @@ export const AdminDashboard = () => {
         : order.paymentMethod === "bank-deposit"
           ? "Bank Deposit"
           : "Cash on Delivery";
+
+    const itemsHtml = (order.orderItems ?? [])
+      .map(
+        (item) => `
+            <p><strong>${escapeHtml(item.productName)}</strong> - Qty ${item.quantity} - ${escapeHtml(formatTZS(item.lineSubtotal))}</p>
+            <p class="muted">Size/Color: ${escapeHtml(item.selectedSize || "-")} / ${escapeHtml(item.selectedColor || "-")}</p>
+        `
+      )
+      .join("");
+
+    const paymentsHtml = (order.payments ?? [])
+      .map(
+        (payment) => `
+            <p><strong>${escapeHtml(String(payment.method).toUpperCase())}</strong> - ${escapeHtml(formatTZS(payment.amount))} - ${escapeHtml(payment.status)}</p>
+            <p class="muted">${escapeHtml(new Date(payment.createdAt).toLocaleString())}</p>
+        `
+      )
+      .join("");
+
+    const paidAmount = getOrderAmountPaid(order);
+    const balanceDue = getOrderBalance(order);
 
     const html = `
       <html>
@@ -504,9 +605,16 @@ export const AdminDashboard = () => {
             <p><strong>Order ID:</strong> ${escapeHtml(order.id)}</p>
             <p><strong>Product:</strong> ${escapeHtml(order.productName ?? order.productId)}</p>
             <p><strong>Quantity:</strong> ${order.quantity}</p>
+            <div class="card" style="margin-top:8px;">
+              <p><strong>Items:</strong></p>
+              ${itemsHtml || "<p>-</p>"}
+            </div>
             <p><strong>Subtotal:</strong> ${escapeHtml(formatTZS(order.subtotal || 0))}</p>
             <p><strong>Shipping:</strong> ${escapeHtml(formatTZS(order.shippingFee || 0))} (${escapeHtml(order.shippingLabel || "-")})</p>
+            <p><strong>Shipping Adjustment:</strong> ${escapeHtml(formatTZS(order.shippingAdjustment || 0))}</p>
             <p><strong>Total:</strong> ${escapeHtml(formatTZS(order.total))}</p>
+            <p><strong>Amount Paid:</strong> ${escapeHtml(formatTZS(paidAmount))}</p>
+            <p><strong>Balance Due:</strong> ${escapeHtml(formatTZS(balanceDue))}</p>
             <p><strong>Customer:</strong> ${escapeHtml(order.fullName)}</p>
             <p><strong>Phone:</strong> ${escapeHtml(order.phone)}</p>
             <p><strong>Address:</strong> ${escapeHtml(order.address)}</p>
@@ -515,6 +623,10 @@ export const AdminDashboard = () => {
             <p><strong>Payment:</strong> ${escapeHtml(paymentMethodLabel)} (${escapeHtml(order.paymentStatus || "unpaid")})</p>
             <p><strong>Deposit:</strong> ${escapeHtml(formatTZS(order.depositAmount || 0))}</p>
             <p><strong>Status:</strong> ${escapeHtml(order.status)}</p>
+            <div class="card" style="margin-top:8px;">
+              <p><strong>Payment History:</strong></p>
+              ${paymentsHtml || "<p>-</p>"}
+            </div>
           </div>
           <script>
             window.onload = () => {
@@ -575,7 +687,7 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-bold uppercase text-[var(--muted)]">Total Orders</p>
           <p className="mt-1 text-2xl font-black">{stats.totalOrders}</p>
@@ -595,6 +707,10 @@ export const AdminDashboard = () => {
         <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-bold uppercase text-[var(--muted)]">Total Revenue</p>
           <p className="mt-1 text-2xl font-black text-[var(--primary)]">{formatTZS(stats.revenue)}</p>
+        </article>
+        <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
+          <p className="text-xs font-bold uppercase text-[var(--muted)]">Outstanding Balance</p>
+          <p className="mt-1 text-2xl font-black text-red-600">{formatTZS(stats.outstanding)}</p>
         </article>
       </div>
 
@@ -632,6 +748,12 @@ export const AdminDashboard = () => {
                 </p>
                 <p className="text-xs text-[var(--muted)]">
                   Payment: {order.paymentMethod || "cash-on-delivery"} • {order.paymentStatus || "unpaid"}
+                </p>
+                <p className="text-xs text-[var(--muted)]">
+                  Paid/Balance: {formatTZS(getOrderAmountPaid(order))} / {formatTZS(getOrderBalance(order))}
+                </p>
+                <p className="text-xs text-[var(--muted)]">
+                  Shipping adj: {formatTZS(Number(order.shippingAdjustment || 0))}
                 </p>
 
                 <div className="mt-2 space-y-2">
@@ -676,6 +798,12 @@ export const AdminDashboard = () => {
 
                 <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => printOrder(order)}>
                   <Printer className="mr-2 h-4 w-4" /> Print Order
+                </Button>
+                <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => void recordOrderPayment(order)}>
+                  Record Payment
+                </Button>
+                <Button type="button" variant="outline" className="mt-2 w-full" onClick={() => void adjustFreight(order)}>
+                  Adjust Freight
                 </Button>
               </article>
             ))}
@@ -724,11 +852,17 @@ export const AdminDashboard = () => {
                           </option>
                         ))}
                       </select>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        Paid: {formatTZS(getOrderAmountPaid(order))}
+                      </p>
+                      <p className="text-xs text-[var(--muted)]">
+                        Balance: {formatTZS(getOrderBalance(order))}
+                      </p>
                     </td>
                     <td className="py-3">
                       <p className="font-bold text-[var(--primary)]">{formatTZS(order.total)}</p>
                       <p className="text-xs text-[var(--muted)]">
-                        {formatTZS(order.subtotal || 0)} + {formatTZS(order.shippingFee || 0)}
+                        {formatTZS(order.subtotal || 0)} + {formatTZS(order.shippingFee || 0)} + {formatTZS(Number(order.shippingAdjustment || 0))}
                       </p>
                     </td>
                     <td className="py-3">
@@ -750,8 +884,14 @@ export const AdminDashboard = () => {
                       </select>
                     </td>
                     <td className="py-3">
-                      <Button type="button" variant="outline" onClick={() => printOrder(order)}>
+                      <Button type="button" variant="outline" onClick={() => printOrder(order)} className="mb-2 w-full">
                         <Printer className="mr-2 h-4 w-4" /> Print
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => void recordOrderPayment(order)} className="mb-2 w-full">
+                        Record Payment
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => void adjustFreight(order)} className="w-full">
+                        Adjust Freight
                       </Button>
                     </td>
                   </tr>

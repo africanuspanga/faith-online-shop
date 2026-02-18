@@ -67,15 +67,46 @@ export type SortKey =
   | "best-selling";
 
 export type PaymentMethod = "cash-on-delivery" | "pesapal" | "bank-deposit";
+export type OrderPaymentMethod = PaymentMethod | "manual";
 export type PaymentStatus = "unpaid" | "pending" | "partial" | "paid" | "failed" | "pending-verification";
 export type OrderStatus = "pending" | "confirmed" | "delivered" | "cancelled";
+
+export interface OrderLineItem {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  paidQuantity: number;
+  freeQuantity: number;
+  unitPrice: number;
+  originalUnitPrice: number;
+  lineSubtotal: number;
+  lineOriginalTotal: number;
+  selectedSize: string;
+  selectedColor: string;
+}
+
+export interface OrderPaymentRecord {
+  id: string;
+  orderId: string;
+  amount: number;
+  method: OrderPaymentMethod;
+  status: PaymentStatus;
+  reference: string;
+  trackingId: string;
+  notes: string;
+  createdAt: string;
+  paidAt: string;
+}
 
 export interface OrderPayload {
   productId: string;
   productName: string;
   quantity: number;
+  orderItems: OrderLineItem[];
   fullName: string;
   phone: string;
+  phoneNormalized?: string;
   regionCity: string;
   address: string;
   selectedSize: string;
@@ -88,8 +119,12 @@ export interface OrderPayload {
   subtotal: number;
   shippingFee: number;
   shippingLabel: string;
+  shippingAdjustment: number;
+  shippingAdjustmentNote: string;
+  amountPaid: number;
   paymentReference?: string;
   paymentTrackingId?: string;
+  lastPaymentAt?: string;
 }
 
 export interface OrderRecord extends OrderPayload {
@@ -97,6 +132,8 @@ export interface OrderRecord extends OrderPayload {
   createdAt: string;
   status: OrderStatus;
   total: number;
+  balanceDue: number;
+  payments: OrderPaymentRecord[];
 }
 
 export interface ProductReview {

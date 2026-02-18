@@ -7,6 +7,7 @@ import { Heart, Menu, Search, ShoppingCart, User, X } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/components/cart-provider";
 
 const links = [
   { href: "/", label: "Home" },
@@ -21,6 +22,7 @@ export const SiteHeader = () => {
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const [term, setTerm] = useState(searchParams.get("q") ?? "");
+  const { cartCount } = useCart();
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -75,7 +77,7 @@ export const SiteHeader = () => {
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <Link
-            href="/contact"
+            href="/account"
             aria-label="Account"
             className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] hover:border-[var(--primary)]"
           >
@@ -89,13 +91,13 @@ export const SiteHeader = () => {
             <Heart className="h-5 w-5" />
           </Link>
           <Link
-            href="/shop"
+            href="/cart"
             aria-label="Cart"
             className="relative inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[var(--border)] hover:border-[var(--primary)]"
           >
             <ShoppingCart className="h-5 w-5" />
             <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-semibold text-white">
-              0
+              {cartCount > 99 ? "99+" : cartCount}
             </span>
           </Link>
         </div>
@@ -126,6 +128,22 @@ export const SiteHeader = () => {
               </Link>
             </li>
           ))}
+          <li>
+            <Link
+              href="/cart"
+              className={pathname === "/cart" ? "text-[var(--primary)]" : "text-[var(--foreground)] hover:text-[var(--primary)]"}
+            >
+              Cart
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/account"
+              className={pathname === "/account" ? "text-[var(--primary)]" : "text-[var(--foreground)] hover:text-[var(--primary)]"}
+            >
+              Account
+            </Link>
+          </li>
         </ul>
       </nav>
 
@@ -156,6 +174,24 @@ export const SiteHeader = () => {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href="/cart"
+                className="block rounded-lg px-3 py-3 text-sm font-semibold hover:bg-[var(--surface)]"
+                onClick={() => setMenuOpen(false)}
+              >
+                Cart
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/account"
+                className="block rounded-lg px-3 py-3 text-sm font-semibold hover:bg-[var(--surface)]"
+                onClick={() => setMenuOpen(false)}
+              >
+                Account
+              </Link>
+            </li>
           </ul>
         </aside>
       </div>

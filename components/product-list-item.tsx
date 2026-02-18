@@ -1,11 +1,27 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import type { Product } from "@/lib/types";
 import { formatTZS } from "@/lib/format";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { StarRating } from "@/components/star-rating";
+import { useCart } from "@/components/cart-provider";
 
 export const ProductListItem = ({ product }: { product: Product }) => {
+  const { addToCart } = useCart();
+  const [adding, setAdding] = useState(false);
+
+  const onAdd = async () => {
+    setAdding(true);
+    try {
+      await addToCart(product, 1);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <article className="grid grid-cols-[120px_1fr] gap-4 rounded-[20px] border border-[var(--border)] bg-white p-3 shadow-[0_2px_0_rgba(26,26,26,0.08)] transition hover:shadow-[0_10px_26px_rgba(244,94,2,0.10)] sm:grid-cols-[180px_1fr_auto] sm:items-center">
       <Link href={`/checkout/${product.id}`} className="relative block overflow-hidden rounded-xl border border-[var(--border)]">
@@ -36,9 +52,14 @@ export const ProductListItem = ({ product }: { product: Product }) => {
         </div>
         <p className="mt-1 text-xs font-semibold text-[var(--muted)]">{product.sold} sold</p>
       </div>
-      <Link href={`/checkout/${product.id}`} className={`${buttonVariants({ variant: "outline" })} w-full sm:w-auto`}>
-        Order Now
-      </Link>
+      <div className="grid w-full gap-2 sm:w-auto">
+        <Button type="button" variant="outline" onClick={() => void onAdd()} disabled={adding} className="w-full sm:w-auto">
+          {adding ? "Adding..." : "Add To Cart"}
+        </Button>
+        <Link href={`/checkout/${product.id}`} className={`${buttonVariants()} w-full sm:w-auto`}>
+          Order Now
+        </Link>
+      </div>
     </article>
   );
 };

@@ -1,6 +1,7 @@
-import type { OrderRecord, ProductReview } from "@/lib/types";
+import type { OrderPaymentRecord, OrderRecord, ProductReview } from "@/lib/types";
 
 export const memoryOrders: OrderRecord[] = [];
+export const memoryOrderPayments: OrderPaymentRecord[] = [];
 export const memoryReviews: ProductReview[] = [];
 
 export type MemorySignup = {
