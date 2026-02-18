@@ -10,7 +10,10 @@ import { serviceHours } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Faith Online Shop Tanzania | Agiza Sasa, Lipa Ukipokea",
   description:
-    "Faith Online Shop Tanzania: Electronics, Fashion, Beauty, Home & Living. Usafiri wa uhakika Tanzania nzima na malipo COD, Pesapal, au Bank Deposit."
+    "Faith Online Shop Tanzania: Electronics, Fashion, Beauty, Home & Living. Usafiri wa uhakika Tanzania nzima na malipo COD, Pesapal, au Bank Deposit.",
+  alternates: {
+    canonical: "/"
+  }
 };
 
 export const dynamic = "force-dynamic";

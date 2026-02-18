@@ -5,7 +5,10 @@ import { darDeliveryFeeRange, darDeliveryRates, upcountryFlatShippingFee } from 
 export const metadata: Metadata = {
   title: "Shipping Policy Tanzania | Faith Online Shop",
   description:
-    "Soma utaratibu wa usafiri wa Faith Online Shop: gharama ya usafiri kulingana na eneo, muda wa kufika oda, na uthibitisho wa oda kwa simu."
+    "Soma utaratibu wa usafiri wa Faith Online Shop: gharama ya usafiri kulingana na eneo, muda wa kufika oda, na uthibitisho wa oda kwa simu.",
+  alternates: {
+    canonical: "/shipping-policy"
+  }
 };
 
 export default function ShippingPolicyPage() {

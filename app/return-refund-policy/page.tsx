@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Return & Refund Policy | Faith Online Shop",
   description:
-    "Sera ya kurudisha bidhaa na marejesho ya fedha ya Faith Online Shop kwa bidhaa zenye hitilafu au changamoto za ubora."
+    "Sera ya kurudisha bidhaa na marejesho ya fedha ya Faith Online Shop kwa bidhaa zenye hitilafu au changamoto za ubora.",
+  alternates: {
+    canonical: "/return-refund-policy"
+  }
 };
 
 export default function ReturnRefundPolicyPage() {

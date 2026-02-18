@@ -20,12 +20,21 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   const category = catalogCategories.find((item) => item.slug === (slug as CategorySlug));
 
   if (!category) {
-    return { title: "Category Not Found" };
+    return {
+      title: "Category Not Found",
+      robots: {
+        index: false,
+        follow: false
+      }
+    };
   }
 
   return {
     title: `${category.label} | Faith Online Shop`,
-    description: `${category.description} Nunua ${category.label} kwa usafiri wa uhakika Tanzania nzima na chagua njia ya malipo unayotaka.`
+    description: `${category.description} Nunua ${category.label} kwa usafiri wa uhakika Tanzania nzima na chagua njia ya malipo unayotaka.`,
+    alternates: {
+      canonical: `/categories/${category.slug}`
+    }
   };
 }
 

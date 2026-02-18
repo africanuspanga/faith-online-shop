@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Terms & Conditions | Faith Online Shop",
   description:
-    "Masharti ya jumla ya matumizi ya Faith Online Shop kuhusu oda, bei, upatikanaji wa bidhaa, na uthibitisho wa taarifa."
+    "Masharti ya jumla ya matumizi ya Faith Online Shop kuhusu oda, bei, upatikanaji wa bidhaa, na uthibitisho wa taarifa.",
+  alternates: {
+    canonical: "/terms-and-conditions"
+  }
 };
 
 export default function TermsAndConditionsPage() {

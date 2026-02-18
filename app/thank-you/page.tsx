@@ -8,7 +8,11 @@ import { OrderReviewForm } from "@/components/order-review-form";
 export const metadata: Metadata = {
   title: "Order Confirmed | Faith Online Shop",
   description:
-    "Asante kwa kuagiza Faith Online Shop. Oda yako imepokelewa na timu yetu itakupigia kuthibitisha usafirishaji na malipo."
+    "Asante kwa kuagiza Faith Online Shop. Oda yako imepokelewa na timu yetu itakupigia kuthibitisha usafirishaji na malipo.",
+  robots: {
+    index: false,
+    follow: false
+  }
 };
 
 export default async function ThankYouPage({

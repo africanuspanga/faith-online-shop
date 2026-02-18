@@ -7,7 +7,10 @@ import { phoneNumber, serviceHours, shopLocation, whatsappLink } from "@/lib/con
 export const metadata: Metadata = {
   title: "Contact Faith Online Shop Tanzania",
   description:
-    "Wasiliana na Faith Online Shop kupitia simu au WhatsApp kwa maswali ya oda, usafiri, au bidhaa. Tunapatikana kila siku 09:00-19:00."
+    "Wasiliana na Faith Online Shop kupitia simu au WhatsApp kwa maswali ya oda, usafiri, au bidhaa. Tunapatikana kila siku 09:00-19:00.",
+  alternates: {
+    canonical: "/contact"
+  }
 };
 
 export default function ContactPage() {

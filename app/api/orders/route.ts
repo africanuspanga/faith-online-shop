@@ -7,6 +7,7 @@ import { computeAmountPaidFromPayments, computeBalanceDue, computeOrderTotal, de
 import { memoryOrderPayments, memoryOrders } from "@/lib/memory-store";
 import { createPesapalOrder } from "@/lib/pesapal";
 import { calculateShippingFee } from "@/lib/shipping-fees";
+import { sendOrderPlacedSmsNotification } from "@/lib/sms";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import type {
   OrderLineItem,
@@ -663,6 +664,15 @@ export async function POST(request: Request) {
       if (payments.length) {
         memoryOrderPayments.unshift(...payments);
       }
+    }
+
+    try {
+      await sendOrderPlacedSmsNotification(record);
+    } catch (error) {
+      console.error("Order SMS notification failed", {
+        orderId: record.id,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
 
     if (paymentUrl) {

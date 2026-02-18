@@ -4,7 +4,11 @@ import { CartCheckoutForm } from "@/components/cart-checkout-form";
 
 export const metadata: Metadata = {
   title: "Checkout",
-  description: "Kamilisha oda ya bidhaa zako zote ulizoweka kwenye cart kwa malipo salama."
+  description: "Kamilisha oda ya bidhaa zako zote ulizoweka kwenye cart kwa malipo salama.",
+  robots: {
+    index: false,
+    follow: false
+  }
 };
 
 export default function Page() {

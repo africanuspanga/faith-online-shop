@@ -3,7 +3,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy | Faith Online Shop",
   description:
-    "Sera ya faragha ya Faith Online Shop: aina ya taarifa tunazokusanya, jinsi tunavyotumia data ya oda, na namna ya kuwasiliana nasi."
+    "Sera ya faragha ya Faith Online Shop: aina ya taarifa tunazokusanya, jinsi tunavyotumia data ya oda, na namna ya kuwasiliana nasi.",
+  alternates: {
+    canonical: "/privacy-policy"
+  }
 };
 
 export default function PrivacyPolicyPage() {

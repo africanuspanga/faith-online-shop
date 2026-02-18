@@ -3,7 +3,11 @@ import { CartPage } from "@/components/cart-page";
 
 export const metadata: Metadata = {
   title: "Cart",
-  description: "Pitia bidhaa ulizoongeza kwenye cart na fanya checkout ya bidhaa nyingi mara moja."
+  description: "Pitia bidhaa ulizoongeza kwenye cart na fanya checkout ya bidhaa nyingi mara moja.",
+  robots: {
+    index: false,
+    follow: false
+  }
 };
 
 export default function Page() {

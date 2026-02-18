@@ -6,7 +6,10 @@ import { getCatalogCategories } from "@/lib/catalog";
 export const metadata: Metadata = {
   title: "Shop by Category | Faith Online Shop",
   description:
-    "Chagua category unayotaka kuona bidhaa zake kwenye Faith Online Shop."
+    "Chagua category unayotaka kuona bidhaa zake kwenye Faith Online Shop.",
+  alternates: {
+    canonical: "/categories"
+  }
 };
 
 export default async function CategoriesIndexPage() {

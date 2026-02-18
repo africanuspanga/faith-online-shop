@@ -6,6 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/"
     },
+    host: "https://www.faithshop.co.tz",
     sitemap: "https://www.faithshop.co.tz/sitemap.xml"
   };
 }

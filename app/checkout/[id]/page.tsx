@@ -20,16 +20,24 @@ export async function generateMetadata({ params }: CheckoutPageProps): Promise<M
 
   if (!product) {
     return {
-      title: "Product Not Found"
+      title: "Product Not Found",
+      robots: {
+        index: false,
+        follow: false
+      }
     };
   }
 
   return {
     title: product.name,
     description: `${product.name} kwa ${formatTZS(product.salePrice)}. Chagua malipo (COD, Pesapal, au Bank Deposit) na usafiri wa uhakika Tanzania.`,
+    alternates: {
+      canonical: `/checkout/${product.id}`
+    },
     openGraph: {
       title: product.name,
       description: `${formatTZS(product.salePrice)} - Faith Online Shop`,
+      url: `/checkout/${product.id}`,
       images: [{ url: product.image }]
     }
   };
