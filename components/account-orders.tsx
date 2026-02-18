@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { formatTZS } from "@/lib/format";
+import { bankDetails, phoneNumber, whatsappLink } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -104,6 +105,15 @@ export const AccountOrders = () => {
         });
         return next;
       });
+      setPaymentMethods((prev) => {
+        const next = { ...prev };
+        fetchedOrders.forEach((order) => {
+          if (!next[order.id]) {
+            next[order.id] = order.paymentMethod === "bank-deposit" ? "bank-deposit" : "pesapal";
+          }
+        });
+        return next;
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Imeshindikana kupata oda.");
     } finally {
@@ -118,7 +128,8 @@ export const AccountOrders = () => {
 
   const onContinuePayment = async (order: AccountOrder) => {
     const amount = Number(paymentAmounts[order.id] ?? 0);
-    const method = paymentMethods[order.id] ?? "pesapal";
+    const method =
+      paymentMethods[order.id] ?? (order.paymentMethod === "bank-deposit" ? "bank-deposit" : "pesapal");
 
     if (!Number.isFinite(amount) || amount <= 0) {
       toast.error("Weka kiasi sahihi cha malipo.");
@@ -196,8 +207,12 @@ export const AccountOrders = () => {
         </div>
       ) : null}
 
-      {sortedOrders.map((order) => (
-        <article key={order.id} className="space-y-3 rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-5">
+      {sortedOrders.map((order) => {
+        const selectedPaymentMethod =
+          paymentMethods[order.id] ?? (order.paymentMethod === "bank-deposit" ? "bank-deposit" : "pesapal");
+
+        return (
+          <article key={order.id} className="space-y-3 rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Order ID</p>
@@ -267,7 +282,7 @@ export const AccountOrders = () => {
                   placeholder={`Kiasi (max ${Math.floor(order.balanceDue)})`}
                 />
                 <select
-                  value={paymentMethods[order.id] ?? "pesapal"}
+                  value={selectedPaymentMethod}
                   onChange={(event) =>
                     setPaymentMethods((prev) => ({
                       ...prev,
@@ -288,17 +303,42 @@ export const AccountOrders = () => {
                   Lipa Sasa
                 </Button>
               </div>
-              <p className="text-xs text-[var(--muted)]">
-                Ukichagua Pesapal utaelekezwa moja kwa moja kulipa. Bank deposit itaingia pending verification.
-              </p>
+              {selectedPaymentMethod === "bank-deposit" ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                  <p className="font-bold">Bank Deposit Details</p>
+                  <p className="mt-1"><span className="font-semibold">Bank:</span> {bankDetails.bankName}</p>
+                  <p><span className="font-semibold">Account Name:</span> {bankDetails.accountName}</p>
+                  <p><span className="font-semibold">A/C Number:</span> {bankDetails.accountNumber}</p>
+                  <p className="mt-2">
+                    Ukishafanya transfer/deposit, payment itaonekana `pending-verification` hadi ithibitishwe.
+                  </p>
+                  <p className="mt-1">
+                    Tuma uthibitisho wa malipo kwa WhatsApp{" "}
+                    <a
+                      href={whatsappLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold underline"
+                    >
+                      {phoneNumber}
+                    </a>
+                    .
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--muted)]">
+                  Ukichagua Pesapal utaelekezwa moja kwa moja kulipa.
+                </p>
+              )}
             </div>
           ) : (
             <p className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--secondary)] px-4 py-2 text-sm font-semibold text-[var(--foreground)]">
               Order hii imelipwa kikamilifu
             </p>
           )}
-        </article>
-      ))}
+          </article>
+        );
+      })}
     </section>
   );
 };

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { Bell, LoaderCircle, LogOut, Package, Pencil, Printer, RefreshCcw, Trash2, X } from "lucide-react";
 import { categories } from "@/lib/categories";
+import { bankDetails, phoneNumber, shopLocation } from "@/lib/constants";
 import { formatTZS } from "@/lib/format";
 import { defaultQuantityOffers, quantityOffersToText, toQuantityOffers } from "@/lib/quantity-offers";
 import type { CategorySlug, OrderRecord, PaymentStatus } from "@/lib/types";
@@ -565,71 +566,386 @@ export const AdminDashboard = () => {
           ? "Bank Deposit"
           : "Cash on Delivery";
 
-    const itemsHtml = (order.orderItems ?? [])
-      .map(
-        (item) => `
-            <p><strong>${escapeHtml(item.productName)}</strong> - Qty ${item.quantity} - ${escapeHtml(formatTZS(item.lineSubtotal))}</p>
-            <p class="muted">Size/Color: ${escapeHtml(item.selectedSize || "-")} / ${escapeHtml(item.selectedColor || "-")}</p>
-        `
-      )
+    const paidAmount = getOrderAmountPaid(order);
+    const balanceDue = getOrderBalance(order);
+    const shippingAdjustment = Number(order.shippingAdjustment || 0);
+
+    const createdAt = new Date(order.createdAt);
+    const invoiceDate = Number.isNaN(createdAt.getTime()) ? new Date() : createdAt;
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + (balanceDue > 0 ? 7 : 0));
+
+    const formatDate = (value: Date) =>
+      value.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+
+    const dateStamp = `${invoiceDate.getFullYear()}${String(invoiceDate.getMonth() + 1).padStart(2, "0")}${String(
+      invoiceDate.getDate()
+    ).padStart(2, "0")}`;
+    const compactOrderId = order.id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 6).toUpperCase() || "ORDER";
+    const invoiceNumber = `FaithSop${dateStamp}${compactOrderId}`;
+    const logoPrimary = `${window.location.origin}/logo-main.png`;
+    const logoFallback = `${window.location.origin}/favicon-faith-logo.png`;
+
+    const itemsRowsHtml = (order.orderItems ?? [])
+      .map((item) => {
+        const details = [
+          item.selectedSize ? `Size: ${item.selectedSize}` : "",
+          item.selectedColor ? `Color: ${item.selectedColor}` : ""
+        ]
+          .filter(Boolean)
+          .join(" • ");
+
+        return `
+          <tr>
+            <td>
+              <div class="product-name">${escapeHtml(item.productName)}</div>
+              ${details ? `<div class="product-meta">${escapeHtml(details)}</div>` : ""}
+            </td>
+            <td class="qty-cell">${escapeHtml(String(item.quantity))}</td>
+            <td class="price-cell">${escapeHtml(formatTZS(item.lineSubtotal))}</td>
+          </tr>
+        `;
+      })
       .join("");
 
     const paymentsHtml = (order.payments ?? [])
       .map(
         (payment) => `
-            <p><strong>${escapeHtml(String(payment.method).toUpperCase())}</strong> - ${escapeHtml(formatTZS(payment.amount))} - ${escapeHtml(payment.status)}</p>
-            <p class="muted">${escapeHtml(new Date(payment.createdAt).toLocaleString())}</p>
+          <tr>
+            <td>${escapeHtml(String(payment.method).toUpperCase())}</td>
+            <td>${escapeHtml(payment.status)}</td>
+            <td>${escapeHtml(new Date(payment.createdAt).toLocaleString())}</td>
+            <td class="price-cell">${escapeHtml(formatTZS(payment.amount))}</td>
+          </tr>
         `
       )
       .join("");
 
-    const paidAmount = getOrderAmountPaid(order);
-    const balanceDue = getOrderBalance(order);
-
     const html = `
       <html>
         <head>
-          <title>Order ${escapeHtml(order.id)}</title>
+          <title>Invoice ${escapeHtml(order.id)}</title>
           <style>
-            body { font-family: Arial, sans-serif; padding: 24px; color: #1a1a1a; }
-            h1 { margin-bottom: 4px; }
-            p { margin: 4px 0; }
-            .card { border: 1px solid #d7d7d7; border-radius: 12px; padding: 16px; margin-top: 16px; }
-            .muted { color: #616161; font-size: 13px; }
+            * { box-sizing: border-box; }
+            body {
+              margin: 0;
+              padding: 18px;
+              background: #f1f1f1;
+              color: #111111;
+              font-family: Arial, Helvetica, sans-serif;
+            }
+            .sheet {
+              max-width: 960px;
+              margin: 0 auto;
+              background: #ffffff;
+              padding: 28px 34px 34px;
+            }
+            .top {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              gap: 24px;
+            }
+            .brand-logo {
+              width: 360px;
+              max-width: 100%;
+              height: auto;
+              display: block;
+            }
+            .company-block {
+              width: 320px;
+              font-size: 16px;
+              line-height: 1.4;
+            }
+            .company-name {
+              margin: 0;
+              font-size: 28px;
+              font-weight: 800;
+            }
+            .company-block p {
+              margin: 2px 0;
+            }
+            .title {
+              margin: 26px 0 18px;
+              font-size: 44px;
+              letter-spacing: 0.6px;
+            }
+            .meta-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1.25fr;
+              gap: 20px;
+              margin-bottom: 18px;
+            }
+            .meta-grid h3 {
+              margin: 0 0 6px;
+              font-size: 22px;
+            }
+            .meta-grid p {
+              margin: 2px 0;
+              font-size: 18px;
+              line-height: 1.35;
+            }
+            .invoice-meta-row {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+              margin: 3px 0;
+              font-size: 18px;
+              line-height: 1.35;
+            }
+            .invoice-meta-row strong {
+              font-weight: 700;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .items thead th {
+              background: #000000;
+              color: #ffffff;
+              text-align: left;
+              padding: 10px 12px;
+              font-size: 18px;
+            }
+            .items tbody td {
+              border-bottom: 1px solid #d9d9d9;
+              padding: 10px 12px;
+              font-size: 18px;
+              vertical-align: top;
+            }
+            .product-name {
+              font-weight: 600;
+            }
+            .product-meta {
+              margin-top: 3px;
+              color: #6b6b6b;
+              font-size: 14px;
+            }
+            .qty-cell {
+              width: 120px;
+            }
+            .price-cell {
+              width: 190px;
+              text-align: right;
+              white-space: nowrap;
+            }
+            .summary-wrap {
+              display: flex;
+              justify-content: flex-end;
+              margin-top: 12px;
+            }
+            .summary {
+              width: 360px;
+            }
+            .summary td {
+              border-bottom: 1px solid #cdcdcd;
+              padding: 8px 0;
+              font-size: 17px;
+            }
+            .summary td:last-child {
+              text-align: right;
+            }
+            .summary .value-note {
+              color: #5f5f5f;
+              font-size: 12px;
+              margin-top: 2px;
+            }
+            .summary tr.total td {
+              border-top: 2px solid #111111;
+              border-bottom: 2px solid #111111;
+              font-size: 28px;
+              font-weight: 800;
+              padding: 10px 0;
+            }
+            .summary tr.balance td {
+              font-weight: 700;
+            }
+            .bank-box {
+              margin-top: 18px;
+              border: 1px solid #f8b057;
+              background: #fff4e6;
+              padding: 12px;
+            }
+            .bank-box p {
+              margin: 3px 0;
+              font-size: 14px;
+            }
+            .payments {
+              margin-top: 16px;
+            }
+            .payments h4 {
+              margin: 0 0 6px;
+              font-size: 14px;
+              text-transform: uppercase;
+              letter-spacing: 0.3px;
+            }
+            .payments th,
+            .payments td {
+              border: 1px solid #e2e2e2;
+              padding: 6px 8px;
+              font-size: 12px;
+              text-align: left;
+            }
+            .payments th:last-child,
+            .payments td:last-child {
+              text-align: right;
+            }
+            @page {
+              size: A4;
+              margin: 12mm;
+            }
+            @media print {
+              body {
+                padding: 0;
+                background: #ffffff;
+              }
+              .sheet {
+                padding: 0;
+                max-width: none;
+              }
+            }
           </style>
         </head>
         <body>
-          <h1>Faith Online Shop - Order Print</h1>
-          <p class="muted">Created: ${escapeHtml(new Date(order.createdAt).toLocaleString())}</p>
-          <div class="card">
-            <p><strong>Order ID:</strong> ${escapeHtml(order.id)}</p>
-            <p><strong>Product:</strong> ${escapeHtml(order.productName ?? order.productId)}</p>
-            <p><strong>Quantity:</strong> ${order.quantity}</p>
-            <div class="card" style="margin-top:8px;">
-              <p><strong>Items:</strong></p>
-              ${itemsHtml || "<p>-</p>"}
+          <div class="sheet">
+            <div class="top">
+              <img
+                class="brand-logo"
+                src="${escapeHtml(logoPrimary)}"
+                alt="Faith Online Shop"
+                onerror="this.onerror=null;this.src='${escapeHtml(logoFallback)}';"
+              />
+              <div class="company-block">
+                <p class="company-name">Faith Online Shop - Tanzania</p>
+                <p>Corner Uhuru/Bibi Titi Moh'd Road, Near Police Post, Mnazi Mmoja</p>
+                <p>Ilala, Dar es Salaam, Tanzania</p>
+              </div>
             </div>
-            <p><strong>Subtotal:</strong> ${escapeHtml(formatTZS(order.subtotal || 0))}</p>
-            <p><strong>Shipping:</strong> ${escapeHtml(formatTZS(order.shippingFee || 0))} (${escapeHtml(order.shippingLabel || "-")})</p>
-            <p><strong>Shipping Adjustment:</strong> ${escapeHtml(formatTZS(order.shippingAdjustment || 0))}</p>
-            <p><strong>Total:</strong> ${escapeHtml(formatTZS(order.total))}</p>
-            <p><strong>Amount Paid:</strong> ${escapeHtml(formatTZS(paidAmount))}</p>
-            <p><strong>Balance Due:</strong> ${escapeHtml(formatTZS(balanceDue))}</p>
-            <p><strong>Customer:</strong> ${escapeHtml(order.fullName)}</p>
-            <p><strong>Phone:</strong> ${escapeHtml(order.phone)}</p>
-            <p><strong>Address:</strong> ${escapeHtml(order.address)}</p>
-            <p><strong>Region/City:</strong> ${escapeHtml(order.regionCity)}</p>
-            <p><strong>Size/Color:</strong> ${escapeHtml(order.selectedSize || "-")} / ${escapeHtml(order.selectedColor || "-")}</p>
-            <p><strong>Payment:</strong> ${escapeHtml(paymentMethodLabel)} (${escapeHtml(order.paymentStatus || "unpaid")})</p>
-            <p><strong>Deposit:</strong> ${escapeHtml(formatTZS(order.depositAmount || 0))}</p>
-            <p><strong>Status:</strong> ${escapeHtml(order.status)}</p>
-            <div class="card" style="margin-top:8px;">
-              <p><strong>Payment History:</strong></p>
-              ${paymentsHtml || "<p>-</p>"}
+
+            <h1 class="title">INVOICE</h1>
+
+            <div class="meta-grid">
+              <div>
+                <h3>From:</h3>
+                <p>Faithshop Admin</p>
+                <p>hello@faithshop.co.tz</p>
+                <p>${escapeHtml(shopLocation)}</p>
+                <p>${escapeHtml(phoneNumber)}</p>
+              </div>
+              <div>
+                <h3>Ship To:</h3>
+                <p>${escapeHtml(order.fullName)}</p>
+                <p>${escapeHtml(order.phone)}</p>
+                <p>${escapeHtml(order.address)}</p>
+                <p>${escapeHtml(order.regionCity)}</p>
+              </div>
+              <div>
+                <div class="invoice-meta-row"><span>Invoice Number:</span><strong>${escapeHtml(invoiceNumber)}</strong></div>
+                <div class="invoice-meta-row"><span>Invoice Date:</span><strong>${escapeHtml(formatDate(invoiceDate))}</strong></div>
+                <div class="invoice-meta-row"><span>Due Date:</span><strong>${escapeHtml(formatDate(dueDate))}</strong></div>
+                <div class="invoice-meta-row"><span>Order Number:</span><strong>${escapeHtml(order.id)}</strong></div>
+                <div class="invoice-meta-row"><span>Order Date:</span><strong>${escapeHtml(formatDate(invoiceDate))}</strong></div>
+                <div class="invoice-meta-row"><span>Payment Method:</span><strong>${escapeHtml(paymentMethodLabel)}</strong></div>
+                <div class="invoice-meta-row"><span>Payment Status:</span><strong>${escapeHtml(order.paymentStatus || "unpaid")}</strong></div>
+              </div>
             </div>
+
+            <table class="items">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Quantity</th>
+                  <th style="text-align:right;">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${itemsRowsHtml || '<tr><td>-</td><td>0</td><td class="price-cell">TZS 0.00</td></tr>'}
+              </tbody>
+            </table>
+
+            <div class="summary-wrap">
+              <table class="summary">
+                <tbody>
+                  <tr>
+                    <td>Subtotal</td>
+                    <td>${escapeHtml(formatTZS(order.subtotal || 0))}</td>
+                  </tr>
+                  <tr>
+                    <td>Shipping</td>
+                    <td>
+                      ${escapeHtml(formatTZS(order.shippingFee || 0))}
+                      ${order.shippingLabel ? `<div class="value-note">${escapeHtml(order.shippingLabel)}</div>` : ""}
+                    </td>
+                  </tr>
+                  ${
+                    shippingAdjustment !== 0
+                      ? `
+                    <tr>
+                      <td>Adjustment</td>
+                      <td>${escapeHtml(formatTZS(shippingAdjustment))}</td>
+                    </tr>
+                  `
+                      : ""
+                  }
+                  <tr class="total">
+                    <td>Total</td>
+                    <td>${escapeHtml(formatTZS(order.total || 0))}</td>
+                  </tr>
+                  <tr>
+                    <td>Paid</td>
+                    <td>${escapeHtml(formatTZS(paidAmount))}</td>
+                  </tr>
+                  <tr class="balance">
+                    <td>Balance</td>
+                    <td>${escapeHtml(formatTZS(balanceDue))}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            ${
+              order.paymentMethod === "bank-deposit"
+                ? `
+              <div class="bank-box">
+                <p><strong>Bank Deposit Details</strong></p>
+                <p><strong>Bank:</strong> ${escapeHtml(bankDetails.bankName)}</p>
+                <p><strong>Account Name:</strong> ${escapeHtml(bankDetails.accountName)}</p>
+                <p><strong>A/C Number:</strong> ${escapeHtml(bankDetails.accountNumber)}</p>
+              </div>
+            `
+                : ""
+            }
+
+            ${
+              paymentsHtml
+                ? `
+              <div class="payments">
+                <h4>Payment History</h4>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Method</th>
+                      <th>Status</th>
+                      <th>Date</th>
+                      <th>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${paymentsHtml}
+                  </tbody>
+                </table>
+              </div>
+            `
+                : ""
+            }
           </div>
           <script>
             window.onload = () => {
+              window.focus();
               window.print();
             };
           </script>
