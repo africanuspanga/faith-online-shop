@@ -36,10 +36,12 @@ const staticProductBySlug = new Map(staticProducts.map((item) => [item.slug, ite
 
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
 const toLocalPath = (value: string) => {
-  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) {
-    return value;
-  }
-  return `/${value}`;
+  const trimmed = value.trim();
+  if (!trimmed) return fallbackImage;
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed) || trimmed.startsWith("/")) return trimmed;
+  if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(trimmed)) return `https://${trimmed}`;
+  return `/${trimmed}`;
 };
 
 const normalizeImageSource = (value: string | null | undefined, slug: string) => {

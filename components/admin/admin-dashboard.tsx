@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import useSWR from "swr";
 import { Bell, LoaderCircle, LogOut, Package, Pencil, Printer, RefreshCcw, Trash2, X } from "lucide-react";
 import { categories } from "@/lib/categories";
@@ -95,6 +96,15 @@ const toStringList = (value: string[] | string | undefined) => {
   return value;
 };
 
+const toImageSource = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "/placeholder.svg";
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed) || trimmed.startsWith("/")) return trimmed;
+  if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(trimmed)) return `https://${trimmed}`;
+  return `/${trimmed}`;
+};
+
 const normalizeCategorySlug = (value: string) =>
   value
     .trim()
@@ -161,9 +171,15 @@ export const AdminDashboard = () => {
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewFailed, setImagePreviewFailed] = useState(false);
   const [newCategoryInput, setNewCategoryInput] = useState("");
   const [categoryChoices, setCategoryChoices] = useState<string[]>(defaultCategoryChoices);
   const [productForm, setProductForm] = useState(defaultProductForm);
+  const imagePreviewSrc = useMemo(() => toImageSource(productForm.image), [productForm.image]);
+
+  useEffect(() => {
+    setImagePreviewFailed(false);
+  }, [imagePreviewSrc]);
 
   useEffect(() => {
     const current = window.localStorage.getItem(ADMIN_STORAGE_KEY) ?? "";
@@ -1342,6 +1358,26 @@ export const AdminDashboard = () => {
                 <p className="mt-1 text-xs text-[var(--muted)]">
                   Unaweza kupaste URL moja kwa moja au kutumia upload hapa chini.
                 </p>
+                <div className="mt-2 overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+                  <div className="relative aspect-square bg-[var(--surface)]">
+                    {imagePreviewFailed ? (
+                      <div className="flex h-full items-center justify-center px-4 text-center text-xs text-[var(--muted)]">
+                        Preview imeshindikana. Angalia kama URL ni sahihi na ina ruhusa ya kuonekana public.
+                      </div>
+                    ) : (
+                      <Image
+                        src={imagePreviewSrc}
+                        alt="Cover preview"
+                        fill
+                        unoptimized
+                        sizes="(max-width: 768px) 100vw, 360px"
+                        className="object-cover"
+                        onError={() => setImagePreviewFailed(true)}
+                      />
+                    )}
+                  </div>
+                  <p className="truncate border-t border-[var(--border)] px-3 py-2 text-[11px] text-[var(--muted)]">{imagePreviewSrc}</p>
+                </div>
               </div>
               <Input
                 placeholder="Gallery URLs (comma or new line separated)"

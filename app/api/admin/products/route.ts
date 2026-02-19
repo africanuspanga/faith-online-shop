@@ -12,8 +12,14 @@ const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-
 const toAssetPath = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return fallbackImage;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+  if (trimmed.startsWith("//")) {
+    return `https:${trimmed}`;
+  }
+  if (/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed) || trimmed.startsWith("/")) {
     return trimmed;
+  }
+  if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(trimmed)) {
+    return `https://${trimmed}`;
   }
   return `/${trimmed}`;
 };

@@ -22,8 +22,9 @@ Copy `.env.example` to `.env.local` and fill values:
 - `PESAPAL_CONSUMER_SECRET`
 - `PESAPAL_NOTIFICATION_ID`
 - `SMS_API_USERNAME` + `SMS_API_PASSWORD` (or `SMS_API_BASIC_AUTH`)
-- `ORDER_ALERT_SMS_TO` (default `+255653670590`)
-- `SMS_API_SENDER_ID` (optional)
+- `SMS_API_AUTH_HEADER` (optional raw auth header, e.g. `Bearer ...`)
+- `ORDER_ALERT_SMS_TO` (country code format, e.g. `255653670590`)
+- `SMS_API_SENDER_ID` (default `NEXTSMS`)
 - `SMS_API_TEST_MODE` (`true` to use test endpoint)
 
 ## Supabase setup

@@ -5,6 +5,7 @@ import type { OrderRecord } from "@/lib/types";
 const defaultSmsBaseUrl = "https://messaging-service.co.tz";
 const defaultSendPath = "/api/sms/v1/text/single";
 const defaultTestSendPath = "/api/sms/v1/test/text/single";
+const defaultSenderId = "NEXTSMS";
 
 const smsBaseUrl = (process.env.SMS_API_BASE_URL ?? defaultSmsBaseUrl).trim().replace(/\/+$/, "");
 const smsSendPath = (process.env.SMS_API_SEND_PATH ?? defaultSendPath).trim();
@@ -12,14 +13,41 @@ const smsTestSendPath = (process.env.SMS_API_TEST_SEND_PATH ?? defaultTestSendPa
 const smsUsername = (process.env.SMS_API_USERNAME ?? "").trim();
 const smsPassword = (process.env.SMS_API_PASSWORD ?? "").trim();
 const smsBasicAuthRaw = (process.env.SMS_API_BASIC_AUTH ?? "").trim();
-const smsSenderId = (process.env.SMS_API_SENDER_ID ?? "").trim();
+const smsAuthHeaderRaw = (process.env.SMS_API_AUTH_HEADER ?? "").trim();
+const smsSenderId = (process.env.SMS_API_SENDER_ID ?? defaultSenderId).trim();
 const smsAdminPhone = (process.env.ORDER_ALERT_SMS_TO ?? defaultAdminPhone).trim();
 const smsTimeoutMs = Math.max(1000, Number(process.env.SMS_API_TIMEOUT_MS ?? 10000));
 const smsTestMode = (process.env.SMS_API_TEST_MODE ?? "false").trim().toLowerCase() === "true";
 
+const normalizeDestinationPhone = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  // NextSMS expects country-code format without "+" (example: 2556...).
+  if (/^\+\d+$/.test(trimmed)) {
+    return trimmed.slice(1);
+  }
+
+  return trimmed.replace(/[^\d]/g, "");
+};
+
+const coerceBasicAuthHeader = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/^(Basic|Bearer)\s+/i.test(trimmed)) return trimmed;
+  if (trimmed.includes(":")) {
+    return `Basic ${Buffer.from(trimmed).toString("base64")}`;
+  }
+  return `Basic ${trimmed}`;
+};
+
 const toAuthHeader = () => {
+  if (smsAuthHeaderRaw) {
+    return smsAuthHeaderRaw;
+  }
+
   if (smsBasicAuthRaw) {
-    return smsBasicAuthRaw.startsWith("Basic ") ? smsBasicAuthRaw : `Basic ${smsBasicAuthRaw}`;
+    return coerceBasicAuthHeader(smsBasicAuthRaw);
   }
 
   if (!smsUsername || !smsPassword) {
@@ -31,6 +59,7 @@ const toAuthHeader = () => {
 };
 
 const normalizePath = (value: string) => (value.startsWith("/") ? value : `/${value}`);
+const normalizedSmsAdminPhone = normalizeDestinationPhone(smsAdminPhone);
 
 const paymentMethodLabel = (method: OrderRecord["paymentMethod"]) => {
   if (method === "bank-deposit") return "Bank Deposit";
@@ -53,17 +82,21 @@ const buildOrderSmsMessage = (order: OrderRecord) => {
   ].join("\n");
 };
 
-export const isSmsNotificationConfigured = () => Boolean(toAuthHeader() && smsAdminPhone);
+export const isSmsNotificationConfigured = () => Boolean(toAuthHeader() && normalizedSmsAdminPhone && smsSenderId);
 
 export const getSmsNotificationMissingConfig = () => {
   const missing: string[] = [];
 
-  if (!smsAdminPhone) {
+  if (!normalizedSmsAdminPhone) {
     missing.push("ORDER_ALERT_SMS_TO");
   }
 
   if (!smsBasicAuthRaw && (!smsUsername || !smsPassword)) {
     missing.push("SMS_API_USERNAME/SMS_API_PASSWORD or SMS_API_BASIC_AUTH");
+  }
+
+  if (!smsSenderId) {
+    missing.push("SMS_API_SENDER_ID");
   }
 
   return missing;
@@ -78,13 +111,10 @@ export const sendOrderPlacedSmsNotification = async (order: OrderRecord) => {
   const endpoint = `${smsBaseUrl}${normalizePath(endpointPath)}`;
 
   const payload: Record<string, unknown> = {
-    to: smsAdminPhone,
+    to: normalizedSmsAdminPhone,
+    from: smsSenderId,
     text: buildOrderSmsMessage(order)
   };
-
-  if (smsSenderId) {
-    payload.from = smsSenderId;
-  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => {
@@ -120,7 +150,13 @@ export const sendOrderPlacedSmsNotification = async (order: OrderRecord) => {
         (parsed && typeof parsed.error === "string" && parsed.error) ||
         raw ||
         "SMS notification request failed.";
-      throw new Error(errorMessage);
+      const authHint =
+        response.status === 401 || response.status === 403
+          ? "Check SMS_API_USERNAME/SMS_API_PASSWORD (or SMS_API_BASIC_AUTH), SMS_API_AUTH_HEADER, and SMS_API_SENDER_ID."
+          : "";
+      throw new Error(
+        `SMS API ${response.status} ${response.statusText} (${endpoint}): ${errorMessage}${authHint ? ` ${authHint}` : ""}`
+      );
     }
 
     return parsed ?? { raw };

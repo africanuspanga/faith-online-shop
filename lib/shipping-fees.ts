@@ -57,7 +57,21 @@ const darKeywords = [
   "ilala",
   "temeke",
   "ubungo",
-  "kigamboni"
+  "kigamboni",
+  "mnazi",
+  "mnazi mmoja",
+  "kariakoo",
+  "posta",
+  "upanga",
+  "buguruni",
+  "tabata",
+  "sinza",
+  "masaki",
+  "mikocheni",
+  "kawe",
+  "tegeta",
+  "kurasini",
+  "changombe"
 ];
 
 const genericAreaTokens = new Set([
@@ -91,8 +105,33 @@ const isDarLocation = (location: string) => {
   return darKeywords.some((keyword) => normalized.includes(keyword));
 };
 
+const darAreaOverrideRules: Array<{ area: string; keywords: string[] }> = [
+  {
+    area: "Area 1 Bibi Titi / Morogoro",
+    keywords: ["mnazi", "mnazi mmoja", "bibi titi", "uhuru", "kariakoo", "posta"]
+  },
+  {
+    area: "Area 6 Morogoro 1",
+    keywords: ["ubungo"]
+  }
+];
+
+const findRateByArea = (area: string) => darDeliveryRates.find((rate) => rate.area === area) ?? null;
+
 const getBestDarArea = (location: string) => {
   const normalizedLocation = normalizeLocation(location);
+
+  const overrideRate = darAreaOverrideRules
+    .find((rule) => rule.keywords.some((keyword) => normalizedLocation.includes(normalizeLocation(keyword))))
+    ?.area;
+
+  if (overrideRate) {
+    const matched = findRateByArea(overrideRate);
+    if (matched) {
+      return matched;
+    }
+  }
+
   let bestMatch = darDeliveryRates[0];
   let bestScore = 0;
 
