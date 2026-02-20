@@ -104,6 +104,16 @@ const toImageSource = (value: string) => {
   if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(trimmed)) return `https://${trimmed}`;
   return `/${trimmed}`;
 };
+const placeholderPattern = /(^|\/)placeholder\.svg(?:[?#].*)?$/i;
+const isPlaceholderImage = (value: string | null | undefined) => {
+  const normalized = value?.trim() ?? "";
+  return !normalized || placeholderPattern.test(normalized);
+};
+const toImageList = (value: string) =>
+  value
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 
 const normalizeCategorySlug = (value: string) =>
   value
@@ -308,16 +318,13 @@ export const AdminDashboard = () => {
   };
 
   const addCurrentImageToGallery = () => {
-    const image = productForm.image.trim();
-    if (!image) {
+    const image = toImageSource(productForm.image);
+    if (isPlaceholderImage(image)) {
       toast.error("Set cover image first");
       return;
     }
 
-    const current = toStringList(productForm.gallery)
-      .split(/\r?\n|,/)
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const current = toImageList(toStringList(productForm.gallery)).map((item) => toImageSource(item));
 
     if (current.includes(image)) {
       toast.info("Image already in gallery");
@@ -1382,7 +1389,24 @@ export const AdminDashboard = () => {
               <Input
                 placeholder="Gallery URLs (comma or new line separated)"
                 value={productForm.gallery}
-                onChange={(event) => setProductForm((prev) => ({ ...prev, gallery: event.target.value }))}
+                onChange={(event) => {
+                  const nextGallery = event.target.value;
+                  setProductForm((prev) => {
+                    const nextImage = toImageList(nextGallery)
+                      .map((item) => toImageSource(item))
+                      .find((item) => !isPlaceholderImage(item));
+
+                    if (!nextImage || !isPlaceholderImage(prev.image)) {
+                      return { ...prev, gallery: nextGallery };
+                    }
+
+                    return {
+                      ...prev,
+                      gallery: nextGallery,
+                      image: nextImage
+                    };
+                  });
+                }}
               />
               <textarea
                 placeholder="Quantity Offers (one line: Title|Paid Units|Free Units|Subtitle|Badge)"

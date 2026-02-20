@@ -31,6 +31,7 @@ type DatabaseProductRow = {
 };
 
 const fallbackImage = "/placeholder.svg";
+const placeholderPattern = /(^|\/)placeholder\.svg(?:[?#].*)?$/i;
 const staticImageBySlug = new Map(staticProducts.map((item) => [item.slug, item.image]));
 const staticProductBySlug = new Map(staticProducts.map((item) => [item.slug, item]));
 
@@ -44,9 +45,18 @@ const toLocalPath = (value: string) => {
   return `/${trimmed}`;
 };
 
-const normalizeImageSource = (value: string | null | undefined, slug: string) => {
+const isPlaceholderImage = (value: string | null | undefined) => {
   const raw = value?.trim() ?? "";
-  if (!raw || raw.includes("/placeholder.svg")) {
+  return !raw || placeholderPattern.test(raw);
+};
+
+const normalizeImageSource = (value: string | null | undefined, slug: string, gallery: string[]) => {
+  const raw = value?.trim() ?? "";
+  if (isPlaceholderImage(raw)) {
+    const galleryFallback = gallery.find((item) => !isPlaceholderImage(item));
+    if (galleryFallback) {
+      return galleryFallback;
+    }
     return staticImageBySlug.get(slug) ?? fallbackImage;
   }
   return toLocalPath(raw);
@@ -86,8 +96,8 @@ const normalizeDatabaseProduct = (row: DatabaseProductRow): Product => {
   const sizeOptions = toStringArray(row.size_options);
   const colorOptions = toStringArray(row.color_options);
   const quantityOptions = toQuantityOffers(row.quantity_options ?? staticProduct?.quantityOptions ?? defaultQuantityOffers);
-  const image = normalizeImageSource(row.image, slug);
   const normalizedGallery = gallery.map((item) => toLocalPath(item));
+  const image = normalizeImageSource(row.image, slug, normalizedGallery);
   const salePrice = Number(row.sale_price) || 0;
   const originalPrice = Number(row.original_price) || salePrice;
 

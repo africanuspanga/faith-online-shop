@@ -7,6 +7,7 @@ import { toQuantityOffers } from "@/lib/quantity-offers";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const fallbackImage = "/placeholder.svg";
+const placeholderPattern = /(^|\/)placeholder\.svg(?:[?#].*)?$/i;
 
 const slugify = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
 const toAssetPath = (value: string) => {
@@ -22,6 +23,10 @@ const toAssetPath = (value: string) => {
     return `https://${trimmed}`;
   }
   return `/${trimmed}`;
+};
+const isPlaceholderImage = (value: string | null | undefined) => {
+  const trimmed = value?.trim() ?? "";
+  return !trimmed || placeholderPattern.test(trimmed);
 };
 
 const toStringList = (value: unknown): string[] => {
@@ -83,7 +88,6 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
   const salePrice = Number(body.salePrice ?? 0);
   const sku = String(body.sku ?? "").trim().toUpperCase();
   const brand = String(body.brand ?? "").trim();
-  const image = toAssetPath(String(body.image ?? fallbackImage));
   const inStock = Boolean(body.inStock ?? true);
   const rating = Math.max(0, Math.min(5, Number(body.rating ?? 4.5)));
   const sold = Math.max(0, Number(body.sold ?? 0));
@@ -92,7 +96,11 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
   const descriptionSw = String(body.descriptionSw ?? "").trim();
   const whoForSw = String(body.whoForSw ?? "").trim();
   const benefitsSw = toStringList(body.benefitsSw);
-  const gallery = toStringList(body.gallery);
+  const rawGallery = toStringList(body.gallery).map((item) => toAssetPath(item));
+  const preferredGalleryImage = rawGallery.find((item) => !isPlaceholderImage(item));
+  const requestedImage = toAssetPath(String(body.image ?? fallbackImage));
+  const image = isPlaceholderImage(requestedImage) && preferredGalleryImage ? preferredGalleryImage : requestedImage;
+  const gallery = rawGallery.length ? rawGallery : [image, image, image];
   const sizeOptions = toStringList(body.sizeOptions);
   const colorOptions = toStringList(body.colorOptions);
   const quantityOptions = toQuantityOffers(body.quantityOptions);
@@ -119,7 +127,7 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
     image,
     in_stock: inStock,
     rating,
-    gallery: (gallery.length ? gallery : [image, image, image]).map((item) => toAssetPath(item)),
+    gallery,
     size_options: sizeOptions,
     color_options: colorOptions,
     quantity_options: quantityOptions,
