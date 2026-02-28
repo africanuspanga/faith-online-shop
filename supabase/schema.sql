@@ -18,7 +18,7 @@ create table if not exists public.products (
   gallery text[] not null default '{}',
   size_options text[] not null default '{}',
   color_options text[] not null default '{}',
-  quantity_options jsonb not null default '[{"id":"buy-1","title":"Buy 1","subtitle":"50% OFF","paidUnits":1,"freeUnits":0},{"id":"buy-2-get-1-free","title":"Buy 2 Get 1 Free","subtitle":"MOST POPULAR","paidUnits":2,"freeUnits":1,"badge":"MOST POPULAR"},{"id":"buy-3-get-2-free","title":"Buy 3 Get 2 Free","subtitle":"BEST VALUE","paidUnits":3,"freeUnits":2,"badge":"BEST VALUE"}]'::jsonb,
+  quantity_options jsonb not null default '[{"id":"buy-1","title":"Buy 1","subtitle":"STANDARD PRICE","paidUnits":1,"freeUnits":0,"discountPercent":0},{"id":"buy-2-get-10-percent-discount","title":"Buy 2 Get 10% Discount","subtitle":"10% OFF EACH ITEM","paidUnits":2,"freeUnits":0,"discountPercent":10,"badge":"MOST POPULAR"},{"id":"buy-3-get-15-percent-discount","title":"Buy 3 Get 15% Discount","subtitle":"15% OFF EACH ITEM","paidUnits":3,"freeUnits":0,"discountPercent":15,"badge":"BEST VALUE"}]'::jsonb,
   sold integer not null default 0,
   is_new boolean not null default false,
   best_selling boolean not null default false,
@@ -30,6 +30,28 @@ create table if not exists public.products (
 
 create index if not exists idx_products_category on public.products(category);
 create index if not exists idx_products_created_at on public.products(created_at desc);
+
+create table if not exists public.categories (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null,
+  label text not null,
+  description text not null default '',
+  image text not null default '/placeholder.svg',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_categories_slug on public.categories(slug);
+create index if not exists idx_categories_created_at on public.categories(created_at desc);
+
+insert into public.categories (slug, label, description, image)
+values
+  ('electronic', 'Electronic', 'Vifaa vya kisasa vya kidijitali kwa matumizi ya kila siku.', '/116plus-smart-watch.webp'),
+  ('fashion', 'Fashion', 'Mavazi ya kisasa kwa muonekano wa kujiamini.', '/black-hoodie-streetwear.webp'),
+  ('fashion-accessories', 'Fashion & Accessories', 'Saa, miwani, na mifuko inayokamilisha mtindo wako.', '/womens-crossbody-bag.webp'),
+  ('hardware-automobile', 'Hardware & Automobile', 'Vifaa vya gari na vifaa muhimu vya matumizi ya nje.', '/12v-car-kettle.webp'),
+  ('health-beauty', 'Health & Beauty', 'Bidhaa za urembo na afya kwa mwonekano bora kila siku.', '/vitamin-c-serum.webp'),
+  ('home-living', 'Home & Living', 'Bidhaa za nyumbani zinazoongeza urahisi na mwonekano mzuri.', '/led-desk-lamp.jpg')
+on conflict do nothing;
 
 create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
@@ -121,13 +143,17 @@ alter table public.products add column if not exists rating numeric(3,2) not nul
 alter table public.products add column if not exists gallery text[] not null default '{}';
 alter table public.products add column if not exists size_options text[] not null default '{}';
 alter table public.products add column if not exists color_options text[] not null default '{}';
-alter table public.products add column if not exists quantity_options jsonb not null default '[{"id":"buy-1","title":"Buy 1","subtitle":"50% OFF","paidUnits":1,"freeUnits":0},{"id":"buy-2-get-1-free","title":"Buy 2 Get 1 Free","subtitle":"MOST POPULAR","paidUnits":2,"freeUnits":1,"badge":"MOST POPULAR"},{"id":"buy-3-get-2-free","title":"Buy 3 Get 2 Free","subtitle":"BEST VALUE","paidUnits":3,"freeUnits":2,"badge":"BEST VALUE"}]'::jsonb;
+alter table public.products add column if not exists quantity_options jsonb not null default '[{"id":"buy-1","title":"Buy 1","subtitle":"STANDARD PRICE","paidUnits":1,"freeUnits":0,"discountPercent":0},{"id":"buy-2-get-10-percent-discount","title":"Buy 2 Get 10% Discount","subtitle":"10% OFF EACH ITEM","paidUnits":2,"freeUnits":0,"discountPercent":10,"badge":"MOST POPULAR"},{"id":"buy-3-get-15-percent-discount","title":"Buy 3 Get 15% Discount","subtitle":"15% OFF EACH ITEM","paidUnits":3,"freeUnits":0,"discountPercent":15,"badge":"BEST VALUE"}]'::jsonb;
 alter table public.products add column if not exists sold integer not null default 0;
 alter table public.products add column if not exists is_new boolean not null default false;
 alter table public.products add column if not exists best_selling boolean not null default false;
 alter table public.products add column if not exists description_sw text not null default 'Bidhaa bora kwa matumizi ya kila siku, tunafikisha Tanzania nzima kwa gharama nafuu.';
 alter table public.products add column if not exists benefits_sw text[] not null default '{"Ubora wa juu uliothibitishwa","Malipo baada ya kupokea bidhaa","Tunafikisha oda Tanzania nzima kwa gharama nafuu ya usafiri"}';
 alter table public.products add column if not exists who_for_sw text not null default 'Inafaa kwa mtu yeyote anayehitaji bidhaa bora kwa bei nafuu.';
+alter table public.categories add column if not exists slug text not null default '';
+alter table public.categories add column if not exists label text not null default '';
+alter table public.categories add column if not exists description text not null default '';
+alter table public.categories add column if not exists image text not null default '/placeholder.svg';
 
 update public.products
 set slug = regexp_replace(regexp_replace(lower(name), '[^a-z0-9]+', '-', 'g'), '(^-|-$)', '', 'g')
@@ -136,6 +162,14 @@ where coalesce(slug, '') = '';
 update public.products
 set sku = upper(regexp_replace(coalesce(slug, name), '[^a-z0-9]+', '-', 'g'))
 where coalesce(sku, '') = '';
+
+update public.categories
+set slug = regexp_replace(regexp_replace(lower(coalesce(slug, label)), '[^a-z0-9]+', '-', 'g'), '(^-|-$)', '', 'g')
+where coalesce(slug, '') = '';
+
+update public.categories
+set label = initcap(replace(slug, '-', ' '))
+where coalesce(label, '') = '';
 
 with slug_duplicates as (
   select id, row_number() over (partition by slug order by created_at asc, id asc) as rn
@@ -156,6 +190,16 @@ update public.products p
 set sku = p.sku || '-' || right(replace(p.id::text, '-', ''), 6)
 from sku_duplicates d
 where p.id = d.id and d.rn > 1;
+
+with category_slug_duplicates as (
+  select id, row_number() over (partition by slug order by created_at asc, id asc) as rn
+  from public.categories
+  where coalesce(slug, '') <> ''
+)
+update public.categories c
+set slug = c.slug || '-' || right(replace(c.id::text, '-', ''), 6)
+from category_slug_duplicates d
+where c.id = d.id and d.rn > 1;
 
 alter table public.orders alter column product_id type text using product_id::text;
 alter table public.orders add column if not exists order_items jsonb not null default '[]'::jsonb;
@@ -232,6 +276,7 @@ $$;
 
 create unique index if not exists idx_products_slug_unique on public.products(slug) where slug <> '';
 create unique index if not exists idx_products_sku_unique on public.products(sku) where sku <> '';
+create unique index if not exists idx_categories_slug_unique_non_empty on public.categories(slug) where slug <> '';
 create index if not exists idx_orders_created_at on public.orders(created_at desc);
 create index if not exists idx_orders_status on public.orders(status);
 create index if not exists idx_orders_payment_status on public.orders(payment_status);
@@ -245,6 +290,7 @@ values ('product-images', 'product-images', true)
 on conflict (id) do nothing;
 
 alter table public.products enable row level security;
+alter table public.categories enable row level security;
 alter table public.orders enable row level security;
 alter table public.order_payments enable row level security;
 alter table public.reviews enable row level security;
@@ -261,6 +307,13 @@ using (true);
 drop policy if exists reviews_public_read on public.reviews;
 create policy reviews_public_read
 on public.reviews
+for select
+to anon, authenticated
+using (true);
+
+drop policy if exists categories_public_read on public.categories;
+create policy categories_public_read
+on public.categories
 for select
 to anon, authenticated
 using (true);

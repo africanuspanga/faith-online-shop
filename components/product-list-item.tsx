@@ -12,6 +12,7 @@ import { useCart } from "@/components/cart-provider";
 export const ProductListItem = ({ product }: { product: Product }) => {
   const { addToCart } = useCart();
   const [adding, setAdding] = useState(false);
+  const isOutOfStock = !product.inStock;
 
   const onAdd = async () => {
     setAdding(true);
@@ -25,9 +26,15 @@ export const ProductListItem = ({ product }: { product: Product }) => {
   return (
     <article className="grid grid-cols-[120px_1fr] gap-4 rounded-[20px] border border-[var(--border)] bg-white p-3 shadow-[0_2px_0_rgba(26,26,26,0.08)] transition hover:shadow-[0_10px_26px_rgba(244,94,2,0.10)] sm:grid-cols-[180px_1fr_auto] sm:items-center">
       <Link href={`/checkout/${product.id}`} className="relative block overflow-hidden rounded-xl border border-[var(--border)]">
-        <span className="absolute left-2 top-2 z-10 inline-flex rounded-full border border-[var(--foreground)] bg-[var(--secondary)] px-2 py-0.5 text-[10px] font-black text-[var(--foreground)]">
-          -30%
-        </span>
+        {isOutOfStock ? (
+          <span className="absolute left-2 top-2 z-10 inline-flex rounded-full border border-red-600 bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-700">
+            OUT OF STOCK
+          </span>
+        ) : (
+          <span className="absolute left-2 top-2 z-10 inline-flex rounded-full border border-[var(--foreground)] bg-[var(--secondary)] px-2 py-0.5 text-[10px] font-black text-[var(--foreground)]">
+            -30%
+          </span>
+        )}
         <Image src={product.image} alt={product.name} width={220} height={220} className="aspect-square w-full object-cover" />
       </Link>
       <div>
@@ -51,14 +58,19 @@ export const ProductListItem = ({ product }: { product: Product }) => {
           <p className="text-sm text-[var(--muted)] line-through">{formatTZS(product.originalPrice)}</p>
         </div>
         <p className="mt-1 text-xs font-semibold text-[var(--muted)]">{product.sold} sold</p>
+        {isOutOfStock ? <p className="mt-1 text-xs font-bold text-red-700">Currently unavailable</p> : null}
       </div>
       <div className="grid w-full gap-2 sm:w-auto">
-        <Button type="button" variant="outline" onClick={() => void onAdd()} disabled={adding} className="w-full sm:w-auto">
-          {adding ? "Adding..." : "Add To Cart"}
+        <Button type="button" variant="outline" onClick={() => void onAdd()} disabled={adding || isOutOfStock} className="w-full sm:w-auto">
+          {isOutOfStock ? "Out of Stock" : adding ? "Adding..." : "Add To Cart"}
         </Button>
-        <Link href={`/checkout/${product.id}`} className={`${buttonVariants()} w-full sm:w-auto`}>
-          Order Now
-        </Link>
+        {isOutOfStock ? (
+          <span className={`${buttonVariants({ variant: "outline" })} pointer-events-none w-full opacity-60 sm:w-auto`}>Unavailable</span>
+        ) : (
+          <Link href={`/checkout/${product.id}`} className={`${buttonVariants()} w-full sm:w-auto`}>
+            Order Now
+          </Link>
+        )}
       </div>
     </article>
   );

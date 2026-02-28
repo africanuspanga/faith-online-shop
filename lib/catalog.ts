@@ -30,6 +30,15 @@ type DatabaseProductRow = {
   created_at: string | null;
 };
 
+type DatabaseCategoryRow = {
+  id: string;
+  slug: string | null;
+  label: string | null;
+  description: string | null;
+  image: string | null;
+  created_at: string | null;
+};
+
 const fallbackImage = "/placeholder.svg";
 const placeholderPattern = /(^|\/)placeholder\.svg(?:[?#].*)?$/i;
 const staticImageBySlug = new Map(staticProducts.map((item) => [item.slug, item.image]));
@@ -159,6 +168,32 @@ const categoriesFromProducts = (items: Product[]): Category[] => {
   return generated;
 };
 
+const normalizeDatabaseCategory = (row: DatabaseCategoryRow): Category => {
+  const fallback = createFallbackCategory(row.slug ?? row.label ?? "");
+  return {
+    slug: fallback.slug,
+    label: row.label?.trim() || fallback.label,
+    description: row.description?.trim() || fallback.description,
+    image: row.image?.trim() ? toLocalPath(row.image) : fallback.image
+  };
+};
+
+const getDynamicCategories = async (): Promise<Category[]> => {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, slug, label, description, image, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error || !data?.length) {
+    return [];
+  }
+
+  return data.map((row) => normalizeDatabaseCategory(row as DatabaseCategoryRow));
+};
+
 export const getCatalogProducts = async (): Promise<Product[]> => {
   const supabase = getSupabaseServerClient();
 
@@ -188,6 +223,6 @@ export const getCatalogProductById = async (id: string): Promise<Product | undef
 };
 
 export const getCatalogCategories = async (): Promise<Category[]> => {
-  const catalog = await getCatalogProducts();
-  return mergeCategories(defaultCategories, categoriesFromProducts(catalog));
+  const [catalog, dynamicCategories] = await Promise.all([getCatalogProducts(), getDynamicCategories()]);
+  return mergeCategories(defaultCategories, dynamicCategories, categoriesFromProducts(catalog));
 };

@@ -13,6 +13,7 @@ export interface QuantityOffer {
   subtitle: string;
   paidUnits: number;
   freeUnits: number;
+  discountPercent?: number;
   badge?: string;
 }
 

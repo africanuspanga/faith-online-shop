@@ -56,11 +56,11 @@ Copy `.env.example` to `.env.local` and fill values:
 
 - Product card `See details` goes directly to `/checkout/[id]`.
 - No cart step in checkout flow.
-- Checkout has quantity offers: Buy 1, Buy 2 Get 1 Free (default), Buy 3 Get 2 Free.
+- Checkout has quantity offers: Buy 1, Buy 2 (10% discount each), Buy 3 (15% discount each).
 - Checkout supports size/color variants, payment methods (COD, Pesapal, Bank Deposit), and installment deposit option.
 - Order POST goes to `/api/orders`, stores payment/status metadata, and can return Pesapal redirect URL.
 - Thank-you page includes post-delivery review form.
-- Admin dashboard has auto-refresh, order print, payment-status updates, visitor analytics, product upload/create, SKU/brand, and dynamic category input.
+- Admin dashboard has auto-refresh, order print, payment-status updates, visitor analytics, main category management, product upload/create, SKU/brand, and dynamic category input.
 
 ## Notes
 

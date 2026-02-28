@@ -35,6 +35,8 @@ type AdminProduct = {
   sold?: number;
   in_stock?: boolean;
   inStock?: boolean;
+  out_of_stock?: boolean;
+  outOfStock?: boolean;
   is_new?: boolean;
   isNew?: boolean;
   best_selling?: boolean;
@@ -55,7 +57,22 @@ type AdminProduct = {
   quantityOptions?: unknown;
 };
 
+type AdminCategory = {
+  id?: string;
+  slug?: string;
+  label?: string;
+  description?: string;
+  image?: string;
+  created_at?: string;
+};
+
 const defaultCategoryChoices = categories.map((item) => item.slug);
+const defaultCategoryForm = {
+  label: "",
+  slug: "",
+  description: "",
+  image: "/placeholder.svg"
+};
 
 const defaultProductForm = {
   name: "",
@@ -71,6 +88,7 @@ const defaultProductForm = {
   sizeOptions: "",
   colorOptions: "",
   inStock: true,
+  outOfStock: false,
   isNew: false,
   bestSelling: false,
   descriptionSw: "",
@@ -178,12 +196,15 @@ export const AdminDashboard = () => {
   const [importingStarter, setImportingStarter] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [savingCategory, setSavingCategory] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewFailed, setImagePreviewFailed] = useState(false);
-  const [newCategoryInput, setNewCategoryInput] = useState("");
   const [categoryChoices, setCategoryChoices] = useState<string[]>(defaultCategoryChoices);
+  const [categoryForm, setCategoryForm] = useState(defaultCategoryForm);
   const [productForm, setProductForm] = useState(defaultProductForm);
   const imagePreviewSrc = useMemo(() => toImageSource(productForm.image), [productForm.image]);
 
@@ -216,6 +237,14 @@ export const AdminDashboard = () => {
     revalidateOnFocus: true
   });
 
+  const { data: categoriesData, mutate: refreshCategories, isLoading: loadingCategories, error: categoriesError } = useSWR<{
+    source: string;
+    categories: AdminCategory[];
+  }, Error>(adminPassword ? ["/api/admin/categories", adminPassword] : null, fetcher, {
+    refreshInterval: 5000,
+    revalidateOnFocus: true
+  });
+
   const { data: analyticsData, mutate: refreshAnalytics, isLoading: loadingAnalytics } = useSWR<{
     source: string;
     totalViews: number;
@@ -228,16 +257,29 @@ export const AdminDashboard = () => {
 
   const orders = useMemo(() => ordersData?.orders ?? [], [ordersData]);
   const products = useMemo(() => productsData?.products ?? [], [productsData]);
+  const managedCategories = useMemo(() => categoriesData?.categories ?? [], [categoriesData]);
+
+  const categoryLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    categories.forEach((item) => map.set(item.slug, item.label));
+    managedCategories.forEach((item) => {
+      const slug = normalizeCategorySlug(String(item.slug ?? ""));
+      if (!slug) return;
+      const label = String(item.label ?? "").trim();
+      map.set(slug, label || categoryLabel(slug));
+    });
+    return map;
+  }, [managedCategories]);
 
   const previousOrderIds = useRef<Set<string>>(new Set());
   const firstLoad = useRef(true);
 
   useEffect(() => {
-    const message = `${ordersError?.message ?? ""} ${productsError?.message ?? ""}`.toLowerCase();
+    const message = `${ordersError?.message ?? ""} ${productsError?.message ?? ""} ${categoriesError?.message ?? ""}`.toLowerCase();
     if (!message.includes("unauthorized")) return;
     window.localStorage.removeItem(ADMIN_STORAGE_KEY);
     router.replace("/admin/login");
-  }, [ordersError, productsError, router]);
+  }, [ordersError, productsError, categoriesError, router]);
 
   useEffect(() => {
     const next = new Set(orders.map((order) => order.id));
@@ -259,12 +301,13 @@ export const AdminDashboard = () => {
     setCategoryChoices((prev) => {
       const merged = new Set(prev.map((item) => normalizeCategorySlug(item)).filter(Boolean));
       categories.forEach((item) => merged.add(normalizeCategorySlug(item.slug)));
+      managedCategories.forEach((item) => merged.add(normalizeCategorySlug(String(item.slug ?? ""))));
       products.forEach((item) => merged.add(normalizeCategorySlug(item.category)));
       const next = [...merged].filter(Boolean).sort((a, b) => a.localeCompare(b));
       const prevSorted = [...prev].sort((a, b) => a.localeCompare(b));
       return next.join("|") === prevSorted.join("|") ? prev : next;
     });
-  }, [products]);
+  }, [products, managedCategories]);
 
   const stats = useMemo(() => {
     const totalOrders = orders.length;
@@ -338,20 +381,95 @@ export const AdminDashboard = () => {
     toast.success("Image added to gallery");
   };
 
-  const addCategoryChoice = () => {
-    const normalized = normalizeCategorySlug(newCategoryInput);
-    if (!normalized) {
-      toast.error("Andika category mpya kwanza.");
+  const saveMainCategory = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const normalizedSlug = normalizeCategorySlug(categoryForm.slug || categoryForm.label);
+    const normalizedLabel = categoryForm.label.trim() || categoryLabel(normalizedSlug);
+
+    if (!normalizedSlug || !normalizedLabel) {
+      toast.error("Weka label au slug ya category.");
       return;
     }
 
-    setCategoryChoices((prev) => {
-      if (prev.includes(normalized)) return prev;
-      return [...prev, normalized].sort((a, b) => a.localeCompare(b));
+    setSavingCategory(true);
+
+    try {
+      const response = await fetch("/api/admin/categories", {
+        method: editingCategoryId ? "PATCH" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-password": adminPassword
+        },
+        body: JSON.stringify({
+          id: editingCategoryId,
+          label: normalizedLabel,
+          slug: normalizedSlug,
+          description: categoryForm.description,
+          image: categoryForm.image
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to save category");
+      }
+
+      toast.success(editingCategoryId ? "Category updated" : "Category added");
+      setEditingCategoryId(null);
+      setCategoryForm(defaultCategoryForm);
+      setProductForm((prev) => ({ ...prev, category: normalizedSlug }));
+      await refreshCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save category");
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const editMainCategory = (category: AdminCategory) => {
+    setEditingCategoryId(String(category.id ?? ""));
+    setCategoryForm({
+      label: String(category.label ?? ""),
+      slug: String(category.slug ?? ""),
+      description: String(category.description ?? ""),
+      image: String(category.image ?? "/placeholder.svg")
     });
-    setProductForm((prev) => ({ ...prev, category: normalized }));
-    setNewCategoryInput("");
-    toast.success("Category imeongezwa.");
+  };
+
+  const cancelCategoryEdit = () => {
+    setEditingCategoryId(null);
+    setCategoryForm(defaultCategoryForm);
+  };
+
+  const deleteMainCategory = async (id: string) => {
+    const proceed = window.confirm("Delete this category? Products using it will keep their category slug.");
+    if (!proceed) return;
+
+    setDeletingCategoryId(id);
+    try {
+      const response = await fetch(`/api/admin/categories?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        headers: {
+          "x-admin-password": adminPassword
+        }
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to delete category");
+      }
+
+      toast.success("Category deleted");
+      if (editingCategoryId === id) {
+        cancelCategoryEdit();
+      }
+      await refreshCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to delete category");
+    } finally {
+      setDeletingCategoryId(null);
+    }
   };
 
   const saveProduct = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -379,7 +497,8 @@ export const AdminDashboard = () => {
           sold: Number(productForm.sold),
           sizeOptions: productForm.sizeOptions,
           colorOptions: productForm.colorOptions,
-          inStock: productForm.inStock,
+          inStock: !productForm.outOfStock,
+          outOfStock: productForm.outOfStock,
           isNew: productForm.isNew,
           bestSelling: productForm.bestSelling,
           descriptionSw: productForm.descriptionSw,
@@ -429,6 +548,7 @@ export const AdminDashboard = () => {
       sizeOptions: toStringList(product.sizeOptions ?? product.size_options),
       colorOptions: toStringList(product.colorOptions ?? product.color_options),
       inStock: Boolean(product.inStock ?? product.in_stock ?? true),
+      outOfStock: !Boolean(product.inStock ?? product.in_stock ?? true),
       isNew: Boolean(product.isNew ?? product.is_new ?? false),
       bestSelling: Boolean(product.bestSelling ?? product.best_selling ?? false),
       descriptionSw: product.descriptionSw ?? product.description_sw ?? "",
@@ -981,7 +1101,7 @@ export const AdminDashboard = () => {
   };
 
   const refreshAll = async () => {
-    await Promise.all([refreshOrders(), refreshProducts(), refreshAnalytics()]);
+    await Promise.all([refreshOrders(), refreshProducts(), refreshCategories(), refreshAnalytics()]);
   };
 
   const importStarterProducts = async () => {
@@ -1018,7 +1138,7 @@ export const AdminDashboard = () => {
           <Button variant="outline" onClick={logout}>
             <LogOut className="mr-2 h-4 w-4" /> Logout
           </Button>
-          {(loadingOrders || loadingProducts || loadingAnalytics) ? (
+          {(loadingOrders || loadingProducts || loadingCategories || loadingAnalytics) ? (
             <span className="ml-auto inline-flex items-center gap-2 text-xs text-[var(--muted)]">
               <LoaderCircle className="h-4 w-4 animate-spin" /> Syncing...
             </span>
@@ -1243,6 +1363,88 @@ export const AdminDashboard = () => {
         <section className="space-y-5">
           <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
             <div className="flex items-center justify-between">
+              <h2 className="text-xl font-black">{editingCategoryId ? "Edit Main Category" : "Add Main Category"}</h2>
+              {editingCategoryId ? (
+                <Button type="button" variant="outline" onClick={cancelCategoryEdit}>
+                  <X className="mr-2 h-4 w-4" /> Cancel
+                </Button>
+              ) : null}
+            </div>
+
+            <form onSubmit={saveMainCategory} className="mt-3 space-y-2">
+              <Input
+                placeholder="Category label (e.g Electronics)"
+                value={categoryForm.label}
+                onChange={(event) => setCategoryForm((prev) => ({ ...prev, label: event.target.value }))}
+                required
+              />
+              <Input
+                placeholder="Category slug (optional, e.g electronics)"
+                value={categoryForm.slug}
+                onChange={(event) => setCategoryForm((prev) => ({ ...prev, slug: event.target.value }))}
+              />
+              <Input
+                placeholder="Category image URL"
+                value={categoryForm.image}
+                onChange={(event) => setCategoryForm((prev) => ({ ...prev, image: event.target.value }))}
+              />
+              <textarea
+                placeholder="Category description"
+                value={categoryForm.description}
+                onChange={(event) => setCategoryForm((prev) => ({ ...prev, description: event.target.value }))}
+                className="min-h-20 w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
+              />
+              <Button type="submit" className="w-full" disabled={savingCategory}>
+                {savingCategory ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {editingCategoryId ? "Update Category" : "Save Category"}
+              </Button>
+            </form>
+
+            <div className="mt-3 max-h-56 space-y-2 overflow-auto">
+              {managedCategories.map((category) => {
+                const categoryId = String(category.id ?? category.slug ?? "");
+                const categorySlug = normalizeCategorySlug(String(category.slug ?? ""));
+                const categoryName = String(category.label ?? "").trim() || categoryLabel(categorySlug);
+                if (!categoryId) return null;
+
+                return (
+                  <article key={categoryId} className="rounded-xl border border-[var(--border)] p-3 text-sm">
+                    <p className="font-semibold">{categoryName}</p>
+                    <p className="text-xs text-[var(--muted)]">{categorySlug || "-"}</p>
+                    <p className="line-clamp-2 text-xs text-[var(--muted)]">{String(category.description ?? "-")}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <Button type="button" variant="outline" onClick={() => editMainCategory(category)}>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void deleteMainCategory(categoryId)}
+                        disabled={deletingCategoryId === categoryId}
+                        className="border-red-300 text-red-700 hover:bg-red-50"
+                      >
+                        {deletingCategoryId === categoryId ? (
+                          <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="mr-2 h-4 w-4" />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
+                  </article>
+                );
+              })}
+              {!managedCategories.length ? (
+                <p className="text-xs text-[var(--muted)]">No custom categories yet. Add one above.</p>
+              ) : null}
+              {categoriesError ? (
+                <p className="text-xs text-red-600">{categoriesError.message}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
+            <div className="flex items-center justify-between">
               <h2 className="text-xl font-black">{editingProductId ? "Edit Product" : "Add Product"}</h2>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" onClick={() => void importStarterProducts()} disabled={importingStarter}>
@@ -1264,7 +1466,7 @@ export const AdminDashboard = () => {
                 required
               />
 
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto]">
+              <div className="space-y-2">
                 <select
                   value={productForm.category}
                   onChange={(event) =>
@@ -1274,20 +1476,11 @@ export const AdminDashboard = () => {
                 >
                   {categoryChoices.map((slug) => (
                     <option key={slug} value={slug}>
-                      {categoryLabel(slug)}
+                      {categoryLabelMap.get(slug) ?? categoryLabel(slug)}
                     </option>
                   ))}
                 </select>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="New category"
-                    value={newCategoryInput}
-                    onChange={(event) => setNewCategoryInput(event.target.value)}
-                  />
-                  <Button type="button" variant="outline" onClick={addCategoryChoice}>
-                    Add
-                  </Button>
-                </div>
+                <p className="text-xs text-[var(--muted)]">Add or edit main categories from the section above.</p>
               </div>
               <Input
                 placeholder="Sub category (e.g smart-watch, skincare, shoes)"
@@ -1409,23 +1602,44 @@ export const AdminDashboard = () => {
                 }}
               />
               <textarea
-                placeholder="Quantity Offers (one line: Title|Paid Units|Free Units|Subtitle|Badge)"
+                placeholder="Quantity Offers (one line: Title|Paid Units|Free Units|Discount %|Subtitle|Badge)"
                 value={productForm.quantityOptions}
                 onChange={(event) => setProductForm((prev) => ({ ...prev, quantityOptions: event.target.value }))}
                 className="min-h-24 w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
               />
               <p className="-mt-2 text-xs text-[var(--muted)]">
-                Mfano: Buy 2 Get 1 Free|2|1|MOST POPULAR|MOST POPULAR
+                Mfano: Buy 2 Get 10% Discount|2|0|10|10% OFF EACH ITEM|MOST POPULAR
               </p>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
                 <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-sm">
                   <input
                     type="checkbox"
                     checked={productForm.inStock}
-                    onChange={(event) => setProductForm((prev) => ({ ...prev, inStock: event.target.checked }))}
+                    onChange={(event) =>
+                      setProductForm((prev) => ({
+                        ...prev,
+                        inStock: event.target.checked,
+                        outOfStock: !event.target.checked
+                      }))
+                    }
                     className="h-4 w-4 accent-[var(--primary)]"
                   />
                   In Stock
+                </label>
+                <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={productForm.outOfStock}
+                    onChange={(event) =>
+                      setProductForm((prev) => ({
+                        ...prev,
+                        outOfStock: event.target.checked,
+                        inStock: !event.target.checked
+                      }))
+                    }
+                    className="h-4 w-4 accent-[var(--primary)]"
+                  />
+                  Out of Stock
                 </label>
                 <label className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-sm">
                   <input

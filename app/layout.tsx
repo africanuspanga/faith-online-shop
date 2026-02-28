@@ -35,6 +35,12 @@ export const metadata: Metadata = {
     "Bank Deposit Tanzania"
   ],
   authors: [{ name: siteName, url: siteUrl }],
+  alternates: {
+    canonical: siteUrl
+  },
+  verification: {
+    google: "googlec84a6bc1ef92d42b"
+  },
   title: {
     default: defaultTitle,
     template: "%s | Faith Online Shop"

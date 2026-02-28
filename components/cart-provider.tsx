@@ -89,6 +89,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [items]);
 
   const addToCart: CartContextValue["addToCart"] = async (product, quantity = 1, options) => {
+    if (!product.inStock) {
+      toast.error(`${product.name} imeisha stock kwa sasa.`);
+      return;
+    }
+
     const selectedSize = options?.selectedSize ?? product.sizeOptions[0] ?? "";
     const selectedColor = options?.selectedColor ?? product.colorOptions[0] ?? "";
     const safeQuantity = sanitizeQuantity(quantity);

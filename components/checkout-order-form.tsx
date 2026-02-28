@@ -7,7 +7,7 @@ import { Check, CreditCard, LoaderCircle, Shield, Truck, Wallet } from "lucide-r
 import type { PaymentMethod, Product } from "@/lib/types";
 import { bankDetails } from "@/lib/constants";
 import { formatTZS } from "@/lib/format";
-import { defaultQuantityOffers } from "@/lib/quantity-offers";
+import { computeQuantityOfferPricing, defaultQuantityOffers } from "@/lib/quantity-offers";
 import { calculateShippingFee, darDeliveryFeeRange, upcountryFlatShippingFee } from "@/lib/shipping-fees";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,9 +48,17 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
     [packageOptions, selectedPackage]
   );
 
-  const quantity = (selected?.paidUnits ?? 1) + (selected?.freeUnits ?? 0);
-  const subtotalPrice = (selected?.paidUnits ?? 1) * product.salePrice;
-  const originalTotal = quantity * product.originalPrice;
+  const selectedPricing = useMemo(
+    () => computeQuantityOfferPricing(selected, product.salePrice, product.originalPrice),
+    [selected, product.salePrice, product.originalPrice]
+  );
+  const quantity = selectedPricing.quantity;
+  const subtotalPrice = selectedPricing.subtotal;
+  const originalTotal = selectedPricing.originalTotal;
+  const bundleDiscountSavings = Number(
+    Math.max((selectedPricing.paidUnits * product.salePrice) - subtotalPrice, 0).toFixed(2)
+  );
+  const productOutOfStock = !product.inStock;
   const shippingEstimate = useMemo(() => calculateShippingFee({ regionCity, address }), [regionCity, address]);
   const totalPrice = subtotalPrice + shippingEstimate.fee;
   const parsedDeposit = Number(depositAmount || 0);
@@ -58,6 +66,11 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (productOutOfStock) {
+      toast.error("Bidhaa hii imeisha stock kwa sasa.");
+      return;
+    }
 
     if (!customerName || !phone || !regionCity || !address) {
       toast.error("Tafadhali jaza taarifa zote muhimu.");
@@ -90,9 +103,11 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         body: JSON.stringify({
           productId: product.id,
           productName: product.name,
+          selectedOfferId: selected?.id ?? "",
           quantity,
-          paidQuantity: selected?.paidUnits ?? 1,
-          freeQuantity: selected?.freeUnits ?? 0,
+          paidQuantity: selectedPricing.paidUnits,
+          freeQuantity: selectedPricing.freeUnits,
+          discountPercent: selectedPricing.discountPercent,
           subtotalPrice,
           shippingFee: shippingEstimate.fee,
           shippingLabel: `${shippingEstimate.regionLabel} - ${shippingEstimate.matchedArea}`,
@@ -135,6 +150,11 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-5">
       <h2 className="text-xl font-black">Taarifa za Uwasilishaji</h2>
+      {productOutOfStock ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+          Bidhaa hii imeisha stock kwa sasa. Tafadhali chagua bidhaa nyingine au wasiliana nasi.
+        </p>
+      ) : null}
       <div className="space-y-2">
         <label htmlFor="customerName" className="text-sm font-semibold">
           Jina Kamili
@@ -207,9 +227,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         <p className="text-sm font-bold">Quantity Options</p>
         <div className="space-y-2">
           {packageOptions.map((option) => {
-            const optionQuantity = option.paidUnits + option.freeUnits;
-            const optionPrice = option.paidUnits * product.salePrice;
-            const optionOriginal = optionQuantity * product.originalPrice;
+            const optionPricing = computeQuantityOfferPricing(option, product.salePrice, product.originalPrice);
             const isActive = selectedPackage === option.id;
 
             return (
@@ -227,6 +245,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
                     name="package"
                     checked={isActive}
                     onChange={() => setSelectedPackage(option.id)}
+                    disabled={productOutOfStock}
                     className="mt-1 h-4 w-4 accent-[var(--primary)]"
                   />
                   <div className="flex-1">
@@ -242,10 +261,13 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
                         </span>
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-[var(--muted)]">You receive {optionQuantity} item(s)</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">You receive {optionPricing.quantity} item(s)</p>
+                    {optionPricing.discountPercent > 0 ? (
+                      <p className="text-xs font-semibold text-green-700">{optionPricing.discountPercent}% discount on each item</p>
+                    ) : null}
                     <div className="mt-1 flex items-center gap-2">
-                      <p className="text-base font-black text-[var(--primary)]">{formatTZS(optionPrice)}</p>
-                      <p className="text-xs text-[var(--muted)] line-through">{formatTZS(optionOriginal)}</p>
+                      <p className="text-base font-black text-[var(--primary)]">{formatTZS(optionPricing.subtotal)}</p>
+                      <p className="text-xs text-[var(--muted)] line-through">{formatTZS(optionPricing.originalTotal)}</p>
                     </div>
                   </div>
                 </div>
@@ -263,6 +285,10 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         <div className="flex items-center justify-between text-sm">
           <span>Subtotal</span>
           <span className="font-semibold">{formatTZS(subtotalPrice)}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span>Bundle discount savings</span>
+          <span className="font-semibold text-green-700">{formatTZS(bundleDiscountSavings)}</span>
         </div>
         <div className="flex items-center justify-between text-sm">
           <span>Shipping ({shippingEstimate.matchedArea})</span>
@@ -355,9 +381,9 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
         ) : null}
       </div>
 
-      <Button type="submit" className="w-full" size="lg" disabled={loading}>
+      <Button type="submit" className="w-full" size="lg" disabled={loading || productOutOfStock}>
         {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-        {paymentMethod === "pesapal" ? "ENDELEA KWENYE PESAPAL" : "THIBITISHA ORDER"}
+        {productOutOfStock ? "OUT OF STOCK" : paymentMethod === "pesapal" ? "ENDELEA KWENYE PESAPAL" : "THIBITISHA ORDER"}
       </Button>
       <Link href="/cart" className={`${buttonVariants({ variant: "outline" })} w-full`}>
         Nunua Bidhaa Nyingi? Tumia Cart Checkout

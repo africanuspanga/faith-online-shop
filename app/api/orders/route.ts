@@ -6,6 +6,7 @@ import { isMissingColumnError } from "@/lib/db-errors";
 import { computeAmountPaidFromPayments, computeBalanceDue, computeOrderTotal, derivePaymentStatus, normalizePhone, roundMoney } from "@/lib/order-finance";
 import { memoryOrderPayments, memoryOrders } from "@/lib/memory-store";
 import { createPesapalOrder } from "@/lib/pesapal";
+import { computeQuantityOfferPricing } from "@/lib/quantity-offers";
 import { calculateShippingFee } from "@/lib/shipping-fees";
 import { sendOrderPlacedSmsNotification } from "@/lib/sms";
 import { getSupabaseServerClient } from "@/lib/supabase";
@@ -363,12 +364,17 @@ export async function POST(request: Request) {
     const productMap = new Map(catalog.map((product) => [product.id, product]));
 
     const orderItems: OrderLineItem[] = [];
+    const unavailableProducts: string[] = [];
 
     if (incomingItems.length) {
       incomingItems.forEach((item, index) => {
         const productId = toString(item.productId);
         const product = productMap.get(productId);
         if (!product) {
+          return;
+        }
+        if (!product.inStock) {
+          unavailableProducts.push(product.name);
           return;
         }
 
@@ -411,10 +417,36 @@ export async function POST(request: Request) {
       if (!product) {
         return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
       }
+      if (!product.inStock) {
+        return NextResponse.json({ error: "Bidhaa hii imeisha stock kwa sasa." }, { status: 400 });
+      }
 
-      const paidQuantity = Math.max(1, toNumber(body.paidQuantity ?? body.quantity, 1));
-      const quantity = Math.max(1, toNumber(body.quantity, paidQuantity));
-      const freeQuantity = Math.max(0, toNumber(body.freeQuantity, Math.max(quantity - paidQuantity, 0)));
+      const selectedOfferId = toString(body.selectedOfferId);
+      const requestedPaidQuantity = Math.max(1, toNumber(body.paidQuantity ?? body.quantity, 1));
+      const requestedQuantity = Math.max(1, toNumber(body.quantity, requestedPaidQuantity));
+      const requestedFreeQuantity = Math.max(
+        0,
+        toNumber(body.freeQuantity, Math.max(requestedQuantity - requestedPaidQuantity, 0))
+      );
+
+      const selectedOffer =
+        product.quantityOptions.find((offer) => offer.id === selectedOfferId) ??
+        product.quantityOptions.find(
+          (offer) => offer.paidUnits === requestedPaidQuantity && offer.freeUnits === requestedFreeQuantity
+        );
+
+      const singleOfferPricing = computeQuantityOfferPricing(
+        selectedOffer ?? {
+          id: selectedOfferId || "custom-offer",
+          title: "Buy 1",
+          subtitle: "STANDARD PRICE",
+          paidUnits: requestedPaidQuantity,
+          freeUnits: requestedFreeQuantity,
+          discountPercent: 0
+        },
+        product.salePrice,
+        product.originalPrice
+      );
 
       const selectedSizeRaw = toString(body.selectedSize);
       const selectedColorRaw = toString(body.selectedColor);
@@ -429,8 +461,11 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Please select a valid color option." }, { status: 400 });
       }
 
-      const lineSubtotal = roundMoney(product.salePrice * paidQuantity);
-      const lineOriginalTotal = roundMoney(product.originalPrice * quantity);
+      const paidQuantity = singleOfferPricing.paidUnits;
+      const freeQuantity = singleOfferPricing.freeUnits;
+      const quantity = singleOfferPricing.quantity;
+      const lineSubtotal = singleOfferPricing.subtotal;
+      const lineOriginalTotal = singleOfferPricing.originalTotal;
 
       orderItems.push({
         id: `${product.id}-1`,
@@ -439,13 +474,21 @@ export async function POST(request: Request) {
         quantity,
         paidQuantity,
         freeQuantity,
-        unitPrice: roundMoney(product.salePrice),
+        unitPrice: singleOfferPricing.discountedUnitPrice,
         originalUnitPrice: roundMoney(product.originalPrice),
         lineSubtotal,
         lineOriginalTotal,
         selectedSize,
         selectedColor
       });
+    }
+
+    if (unavailableProducts.length) {
+      const productLabel = unavailableProducts.join(", ");
+      return NextResponse.json(
+        { error: `Some products are out of stock: ${productLabel}` },
+        { status: 400 }
+      );
     }
 
     if (!orderItems.length) {

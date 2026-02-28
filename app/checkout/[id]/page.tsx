@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Check, MapPin, Shield, Truck } from "lucide-react";
+import { AlertTriangle, Check, MapPin, Shield, Truck } from "lucide-react";
 import { getCatalogProductById } from "@/lib/catalog";
 import { formatTZS } from "@/lib/format";
 import { StarRating } from "@/components/star-rating";
@@ -102,10 +102,22 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
             <p className="inline-flex items-center gap-2"><Truck className="h-4 w-4 text-[var(--primary)]" /> Usafiri wa uhakika Tanzania nzima</p>
             <p className="inline-flex items-center gap-2"><Shield className="h-4 w-4 text-[var(--primary)]" /> COD, Pesapal, au Bank Deposit</p>
             <p className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-[var(--primary)]" /> Gharama ya usafiri hutegemea eneo</p>
-            <p className="inline-flex items-center gap-2"><Check className="h-4 w-4 text-[var(--primary)]" /> In Stock Now</p>
+            <p className={`inline-flex items-center gap-2 ${product.inStock ? "" : "text-red-700"}`}>
+              {product.inStock ? <Check className="h-4 w-4 text-[var(--primary)]" /> : <AlertTriangle className="h-4 w-4 text-red-700" />}
+              {product.inStock ? "In Stock Now" : "Out of Stock"}
+            </p>
           </section>
 
-          <CheckoutOrderForm product={product} />
+          {product.inStock ? (
+            <CheckoutOrderForm product={product} />
+          ) : (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+              <p className="text-base font-black text-red-700">Bidhaa hii imeisha stock kwa sasa.</p>
+              <p className="mt-1 text-sm text-red-700">
+                Tafadhali chagua bidhaa nyingine kwenye shop au wasiliana nasi kupata taarifa ya lini itapatikana tena.
+              </p>
+            </div>
+          )}
         </article>
       </div>
 

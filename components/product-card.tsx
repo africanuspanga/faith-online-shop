@@ -16,6 +16,7 @@ interface ProductCardProps {
 export const ProductCard = ({ product }: ProductCardProps) => {
   const { addToCart } = useCart();
   const [adding, setAdding] = useState(false);
+  const isOutOfStock = !product.inStock;
 
   const onAdd = async () => {
     setAdding(true);
@@ -29,9 +30,15 @@ export const ProductCard = ({ product }: ProductCardProps) => {
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-[var(--border)] bg-white shadow-[0_2px_0_rgba(26,26,26,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(244,94,2,0.12)]">
       <div className="relative overflow-hidden border-b border-[var(--border)]">
-        <span className="absolute left-3 top-3 z-10 inline-flex rounded-full border border-[var(--foreground)] bg-[var(--secondary)] px-3 py-1 text-xs font-black text-[var(--foreground)]">
-          -30%
-        </span>
+        {isOutOfStock ? (
+          <span className="absolute left-3 top-3 z-10 inline-flex rounded-full border border-red-600 bg-red-100 px-3 py-1 text-xs font-black text-red-700">
+            OUT OF STOCK
+          </span>
+        ) : (
+          <span className="absolute left-3 top-3 z-10 inline-flex rounded-full border border-[var(--foreground)] bg-[var(--secondary)] px-3 py-1 text-xs font-black text-[var(--foreground)]">
+            -30%
+          </span>
+        )}
 
         <Link href={`/checkout/${product.id}`}>
           <Image
@@ -66,13 +73,18 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         <p className="text-sm text-[var(--muted)] line-through">{formatTZS(product.originalPrice)}</p>
         <StarRating rating={product.rating} />
         <p className="text-xs font-semibold text-[var(--muted)]">{product.sold} sold</p>
+        {isOutOfStock ? <p className="text-xs font-bold text-red-700">Currently unavailable</p> : null}
         <div className="mt-auto grid grid-cols-2 gap-2">
-          <Button type="button" variant="outline" onClick={() => void onAdd()} disabled={adding}>
-            {adding ? "Adding..." : "Add To Cart"}
+          <Button type="button" variant="outline" onClick={() => void onAdd()} disabled={adding || isOutOfStock}>
+            {isOutOfStock ? "Out of Stock" : adding ? "Adding..." : "Add To Cart"}
           </Button>
-          <Link href={`/checkout/${product.id}`} className={`${buttonVariants()} w-full`}>
-            Order Now
-          </Link>
+          {isOutOfStock ? (
+            <span className={`${buttonVariants({ variant: "outline" })} pointer-events-none w-full opacity-60`}>Unavailable</span>
+          ) : (
+            <Link href={`/checkout/${product.id}`} className={`${buttonVariants()} w-full`}>
+              Order Now
+            </Link>
+          )}
         </div>
       </div>
     </article>

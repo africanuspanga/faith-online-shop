@@ -88,7 +88,8 @@ const parsePayload = (body: Record<string, unknown>): ProductPayload | null => {
   const salePrice = Number(body.salePrice ?? 0);
   const sku = String(body.sku ?? "").trim().toUpperCase();
   const brand = String(body.brand ?? "").trim();
-  const inStock = Boolean(body.inStock ?? true);
+  const outOfStock = Boolean(body.outOfStock ?? false);
+  const inStock = !outOfStock && Boolean(body.inStock ?? true);
   const rating = Math.max(0, Math.min(5, Number(body.rating ?? 4.5)));
   const sold = Math.max(0, Number(body.sold ?? 0));
   const isNew = Boolean(body.isNew ?? false);
