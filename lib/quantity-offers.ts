@@ -64,8 +64,23 @@ export const defaultQuantityOffers: QuantityOffer[] = [
 
 const cloneDefaultOffers = () => defaultQuantityOffers.map((offer) => ({ ...offer }));
 
+const isSingleUnitOffer = (paidUnits: number, freeUnits: number, normalizedId: string, normalizedTitle: string) =>
+  (paidUnits === 1 && freeUnits === 0) ||
+  normalizedId === "buy-1" ||
+  normalizedTitle === "buy 1" ||
+  normalizedTitle.startsWith("buy 1 ");
+
 export const getQuantityOfferDiscountPercent = (offer: Partial<QuantityOffer> | null | undefined) => {
   if (!offer) return 0;
+
+  const paidUnits = Math.max(1, toWholeNumber(offer.paidUnits, 1));
+  const freeUnits = Math.max(0, toWholeNumber(offer.freeUnits, 0));
+  const normalizedId = String(offer.id ?? "").trim().toLowerCase();
+  const normalizedTitle = String(offer.title ?? "").trim().toLowerCase();
+
+  if (isSingleUnitOffer(paidUnits, freeUnits, normalizedId, normalizedTitle)) {
+    return 0;
+  }
 
   const explicitDiscount = Number(offer.discountPercent ?? Number.NaN);
   if (Number.isFinite(explicitDiscount)) {
@@ -77,11 +92,6 @@ export const getQuantityOfferDiscountPercent = (offer: Partial<QuantityOffer> | 
   if (textMatch) {
     return clampDiscountPercent(toNumber(textMatch[1], 0));
   }
-
-  const paidUnits = Math.max(1, toWholeNumber(offer.paidUnits, 1));
-  const freeUnits = Math.max(0, toWholeNumber(offer.freeUnits, 0));
-  const normalizedId = String(offer.id ?? "").trim().toLowerCase();
-  const normalizedTitle = String(offer.title ?? "").trim().toLowerCase();
 
   if (
     (paidUnits === 2 && freeUnits === 1) ||
@@ -107,6 +117,17 @@ const upgradeLegacyBusinessOffer = (offer: QuantityOffer): QuantityOffer => {
   const freeUnits = Math.max(0, toWholeNumber(offer.freeUnits, 0));
   const normalizedId = offer.id.trim().toLowerCase();
   const normalizedTitle = offer.title.trim().toLowerCase();
+
+  if (isSingleUnitOffer(paidUnits, freeUnits, normalizedId, normalizedTitle)) {
+    return {
+      id: offer.id,
+      title: offer.title || defaultBuy1Offer.title,
+      subtitle: defaultBuy1Offer.subtitle,
+      paidUnits: 1,
+      freeUnits: 0,
+      discountPercent: 0
+    };
+  }
 
   const isLegacyBuy2 =
     (paidUnits === 2 && freeUnits === 1) ||

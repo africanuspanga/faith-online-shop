@@ -55,6 +55,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
   const quantity = selectedPricing.quantity;
   const subtotalPrice = selectedPricing.subtotal;
   const originalTotal = selectedPricing.originalTotal;
+  const selectedHasBundleOffer = selectedPricing.discountPercent > 0 || selectedPricing.freeUnits > 0;
   const bundleDiscountSavings = Number(
     Math.max((selectedPricing.paidUnits * product.salePrice) - subtotalPrice, 0).toFixed(2)
   );
@@ -229,6 +230,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
           {packageOptions.map((option) => {
             const optionPricing = computeQuantityOfferPricing(option, product.salePrice, product.originalPrice);
             const isActive = selectedPackage === option.id;
+            const optionHasBundleOffer = optionPricing.discountPercent > 0 || optionPricing.freeUnits > 0;
 
             return (
               <label
@@ -251,13 +253,13 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-bold">{option.title}</p>
-                      {option.badge ? (
+                      {option.badge && optionHasBundleOffer ? (
                         <span className="rounded-full bg-[var(--secondary)] px-2 py-1 text-[10px] font-black text-[var(--foreground)]">
                           {option.badge}
                         </span>
                       ) : (
                         <span className="rounded-full bg-gray-100 px-2 py-1 text-[10px] font-black text-[var(--foreground)]">
-                          {option.subtitle}
+                          {optionHasBundleOffer ? option.subtitle : "STANDARD PRICE"}
                         </span>
                       )}
                     </div>
@@ -267,7 +269,9 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
                     ) : null}
                     <div className="mt-1 flex items-center gap-2">
                       <p className="text-base font-black text-[var(--primary)]">{formatTZS(optionPricing.subtotal)}</p>
-                      <p className="text-xs text-[var(--muted)] line-through">{formatTZS(optionPricing.originalTotal)}</p>
+                      {optionHasBundleOffer ? (
+                        <p className="text-xs text-[var(--muted)] line-through">{formatTZS(optionPricing.originalTotal)}</p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -298,7 +302,9 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
           <span>Total bill</span>
           <span className="text-lg font-black text-[var(--primary)]">{formatTZS(totalPrice)}</span>
         </div>
-        <p className="text-xs text-[var(--muted)] line-through">Original bidhaa: {formatTZS(originalTotal)}</p>
+        {selectedHasBundleOffer ? (
+          <p className="text-xs text-[var(--muted)] line-through">Original bidhaa: {formatTZS(originalTotal)}</p>
+        ) : null}
       </div>
 
       <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
