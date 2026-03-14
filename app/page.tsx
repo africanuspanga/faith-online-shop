@@ -10,7 +10,7 @@ import { serviceHours } from "@/lib/constants";
 export const metadata: Metadata = {
   title: "Faith Online Shop Tanzania | Agiza Sasa, Lipa Ukipokea",
   description:
-    "Faith Online Shop Tanzania: Electronics, Fashion, Beauty, Home & Living. Usafiri wa uhakika Tanzania nzima na malipo COD, Pesapal, au Bank Deposit.",
+    "Faith Online Shop Tanzania: Electronics, Fashion, Beauty, Home & Living. Usafiri wa uhakika Tanzania nzima na malipo COD, Pesapal, au M-Pesa / Bank Transfer.",
   alternates: {
     canonical: "/"
   }
@@ -21,25 +21,32 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const products = await getCatalogProducts();
   const categoryItems = await getCatalogCategories();
-  const featured = products.slice(0, 12);
+  const featured = (
+    products.some((product) => product.bestSelling)
+      ? [...products]
+          .filter((product) => product.bestSelling)
+          .sort((a, b) => b.sold - a.sold || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      : [...products].sort((a, b) => b.sold - a.sold || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  ).slice(0, 12);
+  const collectionCategories = categoryItems.filter((category) => products.some((product) => product.category === category.slug));
 
   return (
     <div className="space-y-10">
       <HeroCarousel />
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-center text-xs font-semibold text-[var(--foreground)] sm:text-sm">
-        Usafiri Tanzania Nzima | COD • Pesapal • Bank Deposit | Bidhaa Bora Tu
+        Usafiri Tanzania Nzima | COD • Pesapal • M-Pesa / Bank Transfer | Bidhaa Bora Tu
       </section>
       <CategoryNav items={categoryItems} />
 
       <section aria-labelledby="featured-title">
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--primary)]">Weekly Picks</p>
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--primary)]">Top Demand</p>
             <h2 id="featured-title" className="text-3xl font-black leading-none sm:text-4xl">
-              Featured Products
+              Best Selling Products
             </h2>
           </div>
-          <p className="hidden text-xs font-semibold text-[var(--muted)] sm:block">Best pricing this week</p>
+          <p className="hidden text-xs font-semibold text-[var(--muted)] sm:block">Products customers buy most</p>
         </div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
           {featured.map((product, index) => (
@@ -65,7 +72,7 @@ export default async function HomePage() {
             Category Collections
           </h2>
         </div>
-        <CategoryShowcase products={products} slugs={["electronic", "health-beauty", "home-living"]} />
+        <CategoryShowcase products={products} categories={collectionCategories} />
       </section>
 
       <TrustBar />

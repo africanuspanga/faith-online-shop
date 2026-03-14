@@ -85,7 +85,7 @@ export default function ShippingPolicyPage() {
       <article className="rounded-2xl border border-[var(--border)] bg-white p-5">
         <h2 className="text-lg font-black">Malipo</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Tunakubali <strong>Cash on Delivery, Pesapal, na Bank Deposit</strong>. Kwa installment, unaweza kulipa
+          Tunakubali <strong>Cash on Delivery, Pesapal, na M-Pesa / Bank Transfer</strong>. Kwa installment, unaweza kulipa
           kiasi cha awali na kumalizia kabla ya kuchukua oda.
         </p>
       </article>

@@ -5,6 +5,7 @@ export interface Category {
   label: string;
   description: string;
   image: string;
+  subCategories?: string[];
 }
 
 export interface QuantityOffer {

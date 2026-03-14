@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: CheckoutPageProps): Promise<M
 
   return {
     title: product.name,
-    description: `${product.name} kwa ${formatTZS(product.salePrice)}. Chagua malipo (COD, Pesapal, au Bank Deposit) na usafiri wa uhakika Tanzania.`,
+    description: `${product.name} kwa ${formatTZS(product.salePrice)}. Chagua malipo (COD, Pesapal, au M-Pesa / Bank Transfer) na usafiri wa uhakika Tanzania.`,
     alternates: {
       canonical: `/checkout/${product.id}`
     },
@@ -100,7 +100,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
 
           <section className="grid grid-cols-2 gap-2 text-xs font-semibold text-[var(--muted)] sm:text-sm">
             <p className="inline-flex items-center gap-2"><Truck className="h-4 w-4 text-[var(--primary)]" /> Usafiri wa uhakika Tanzania nzima</p>
-            <p className="inline-flex items-center gap-2"><Shield className="h-4 w-4 text-[var(--primary)]" /> COD, Pesapal, au Bank Deposit</p>
+            <p className="inline-flex items-center gap-2"><Shield className="h-4 w-4 text-[var(--primary)]" /> COD, Pesapal, au M-Pesa / Bank Transfer</p>
             <p className="inline-flex items-center gap-2"><MapPin className="h-4 w-4 text-[var(--primary)]" /> Gharama ya usafiri hutegemea eneo</p>
             <p className={`inline-flex items-center gap-2 ${product.inStock ? "" : "text-red-700"}`}>
               {product.inStock ? <Check className="h-4 w-4 text-[var(--primary)]" /> : <AlertTriangle className="h-4 w-4 text-red-700" />}

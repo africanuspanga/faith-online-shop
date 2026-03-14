@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CheckCircle2 } from "lucide-react";
-import { bankDetails, whatsappLink } from "@/lib/constants";
+import { whatsappLink } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
+import { ManualPaymentDetails } from "@/components/manual-payment-details";
 import { OrderReviewForm } from "@/components/order-review-form";
 
 export const metadata: Metadata = {
@@ -37,11 +38,8 @@ export default async function ThankYouPage({
         <p className="text-sm font-semibold">Outside Dar: 2-5 days</p>
         <p className="mt-2 text-xs text-[var(--muted)]">Gharama ya usafiri hutegemea eneo la mteja.</p>
         {payment === "bank-deposit" ? (
-          <div className="mt-3 rounded-lg border border-[var(--border)] bg-white p-3">
-            <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Bank Deposit Details</p>
-            <p className="mt-1 text-sm"><span className="font-semibold">Bank:</span> {bankDetails.bankName}</p>
-            <p className="text-sm"><span className="font-semibold">Account Name:</span> {bankDetails.accountName}</p>
-            <p className="text-sm"><span className="font-semibold">A/C Number:</span> {bankDetails.accountNumber}</p>
+          <div className="mt-3">
+            <ManualPaymentDetails title="M-Pesa / Bank Transfer Details" note="Tuma uthibitisho wa malipo kwa WhatsApp ili timu ithibitishe order yako haraka." />
           </div>
         ) : null}
       </div>

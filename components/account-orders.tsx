@@ -3,9 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { formatTZS } from "@/lib/format";
-import { bankDetails, phoneNumber, whatsappLink } from "@/lib/constants";
+import { phoneNumber, whatsappLink } from "@/lib/constants";
+import { getPaymentMethodLabel } from "@/lib/payment-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ManualPaymentDetails } from "@/components/manual-payment-details";
 import { toast } from "sonner";
 
 type AccountPayment = {
@@ -255,7 +257,7 @@ export const AccountOrders = () => {
               order.payments.map((payment) => (
                 <div key={payment.id} className="rounded-lg border border-[var(--border)] p-2 text-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold uppercase">{payment.method}</p>
+                    <p className="font-semibold uppercase">{getPaymentMethodLabel(payment.method as "manual" | "cash-on-delivery" | "pesapal" | "bank-deposit")}</p>
                     <p className="font-black">{formatTZS(payment.amount)}</p>
                   </div>
                   <p className="capitalize text-[var(--muted)]">Status: {payment.status}</p>
@@ -292,7 +294,7 @@ export const AccountOrders = () => {
                   className="h-11 rounded-xl border border-[var(--border)] bg-white px-3 text-sm"
                 >
                   <option value="pesapal">Pesapal</option>
-                  <option value="bank-deposit">Bank Deposit</option>
+                  <option value="bank-deposit">M-Pesa / Bank Transfer</option>
                 </select>
                 <Button
                   type="button"
@@ -304,14 +306,11 @@ export const AccountOrders = () => {
                 </Button>
               </div>
               {selectedPaymentMethod === "bank-deposit" ? (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
-                  <p className="font-bold">Bank Deposit Details</p>
-                  <p className="mt-1"><span className="font-semibold">Bank:</span> {bankDetails.bankName}</p>
-                  <p><span className="font-semibold">Account Name:</span> {bankDetails.accountName}</p>
-                  <p><span className="font-semibold">A/C Number:</span> {bankDetails.accountNumber}</p>
-                  <p className="mt-2">
-                    Ukishafanya transfer/deposit, payment itaonekana `pending-verification` hadi ithibitishwe.
-                  </p>
+                <div className="space-y-2">
+                  <ManualPaymentDetails
+                    title="M-Pesa / Bank Transfer Details"
+                    note="Ukishafanya malipo, payment itaonekana pending verification hadi admin aithibitishe."
+                  />
                   <p className="mt-1">
                     Tuma uthibitisho wa malipo kwa WhatsApp{" "}
                     <a

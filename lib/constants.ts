@@ -9,6 +9,11 @@ export const bankDetails = {
   accountName: "FAITH ONLINE SHOP",
   accountNumber: "10215141271"
 } as const;
+export const mpesaDetails = {
+  provider: "Vodacom M-Pesa",
+  phone: "0769 979 767",
+  accountName: "TUMAINIELY B. MOSHI"
+} as const;
 
 export const heroSlides = [
   {

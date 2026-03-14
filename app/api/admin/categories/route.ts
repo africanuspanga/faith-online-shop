@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { categories as defaultCategories, createFallbackCategory, normalizeCategorySlug } from "@/lib/categories";
 import { isAuthorizedAdminRequest } from "@/lib/admin-auth";
+import { isMissingColumnError } from "@/lib/db-errors";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 const fallbackImage = "/placeholder.svg";
@@ -22,6 +23,22 @@ type CategoryPayload = {
   label: string;
   description: string;
   image: string;
+  sub_categories: string[];
+};
+
+const toStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/\r?\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
 };
 
 const parsePayload = (body: Record<string, unknown>): CategoryPayload | null => {
@@ -36,12 +53,14 @@ const parsePayload = (body: Record<string, unknown>): CategoryPayload | null => 
   const descriptionInput = String(body.description ?? "").trim();
   const description = descriptionInput || fallback.description;
   const image = toAssetPath(String(body.image ?? fallback.image));
+  const subCategories = [...new Set(toStringList(body.subCategories ?? body.sub_categories).map(normalizeCategorySlug).filter(Boolean))];
 
   return {
     slug,
     label,
     description,
-    image
+    image,
+    sub_categories: subCategories
   };
 };
 
@@ -58,6 +77,7 @@ export async function GET(request: Request) {
     label: category.label,
     description: category.description,
     image: category.image,
+    sub_categories: category.subCategories ?? [],
     created_at: new Date().toISOString()
   }));
 
@@ -108,6 +128,31 @@ export async function POST(request: Request) {
       .select()
       .single();
 
+    if (error && isMissingColumnError(error.message)) {
+      const { data: legacyData, error: legacyError } = await supabase
+        .from("categories")
+        .insert({
+          slug: payload.slug,
+          label: payload.label,
+          description: payload.description,
+          image: payload.image
+        })
+        .select()
+        .single();
+
+      if (legacyError) {
+        return NextResponse.json({ error: legacyError.message }, { status: 500 });
+      }
+
+      return NextResponse.json(
+        {
+          ...legacyData,
+          warning: "Category saved without subcategory registry. Run latest supabase/schema.sql to persist subcategories."
+        },
+        { status: 201 }
+      );
+    }
+
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
@@ -146,6 +191,32 @@ export async function PATCH(request: Request) {
       .eq("id", id)
       .select()
       .single();
+
+    if (error && isMissingColumnError(error.message)) {
+      const { data: legacyData, error: legacyError } = await supabase
+        .from("categories")
+        .update({
+          slug: payload.slug,
+          label: payload.label,
+          description: payload.description,
+          image: payload.image
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (legacyError) {
+        return NextResponse.json({ error: legacyError.message }, { status: 500 });
+      }
+
+      return NextResponse.json(
+        {
+          ...legacyData,
+          warning: "Category updated without subcategory registry. Run latest supabase/schema.sql to persist subcategories."
+        },
+        { status: 200 }
+      );
+    }
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

@@ -6,8 +6,9 @@ import Image from "next/image";
 import useSWR from "swr";
 import { Bell, LoaderCircle, LogOut, Package, Pencil, Printer, RefreshCcw, Trash2, X } from "lucide-react";
 import { categories } from "@/lib/categories";
-import { bankDetails, phoneNumber, shopLocation } from "@/lib/constants";
+import { bankDetails, mpesaDetails, phoneNumber, shopLocation } from "@/lib/constants";
 import { formatTZS } from "@/lib/format";
+import { getPaymentMethodLabel } from "@/lib/payment-utils";
 import { defaultQuantityOffers, quantityOffersToText, toQuantityOffers } from "@/lib/quantity-offers";
 import type { CategorySlug, OrderRecord, PaymentStatus } from "@/lib/types";
 import { ADMIN_STORAGE_KEY } from "@/lib/admin-auth";
@@ -63,6 +64,8 @@ type AdminCategory = {
   label?: string;
   description?: string;
   image?: string;
+  sub_categories?: string[] | string;
+  subCategories?: string[] | string;
   created_at?: string;
 };
 
@@ -71,7 +74,8 @@ const defaultCategoryForm = {
   label: "",
   slug: "",
   description: "",
-  image: "/placeholder.svg"
+  image: "/placeholder.svg",
+  subCategories: ""
 };
 
 const defaultProductForm = {
@@ -112,6 +116,12 @@ const toStringList = (value: string[] | string | undefined) => {
   if (!value) return "";
   if (Array.isArray(value)) return value.join("\n");
   return value;
+};
+
+const toSlugArray = (value: string[] | string | undefined) => {
+  if (!value) return [];
+  const raw = Array.isArray(value) ? value.join("\n") : value;
+  return [...new Set(raw.split(/\r?\n|,/).map((item) => normalizeCategorySlug(item)).filter(Boolean))];
 };
 
 const toImageSource = (value: string) => {
@@ -206,6 +216,7 @@ export const AdminDashboard = () => {
   const [categoryChoices, setCategoryChoices] = useState<string[]>(defaultCategoryChoices);
   const [categoryForm, setCategoryForm] = useState(defaultCategoryForm);
   const [productForm, setProductForm] = useState(defaultProductForm);
+  const [productSearch, setProductSearch] = useState("");
   const imagePreviewSrc = useMemo(() => toImageSource(productForm.image), [productForm.image]);
 
   useEffect(() => {
@@ -271,6 +282,55 @@ export const AdminDashboard = () => {
     return map;
   }, [managedCategories]);
 
+  const subCategoryChoicesByCategory = useMemo(() => {
+    const map = new Map<string, string[]>();
+
+    managedCategories.forEach((item) => {
+      const slug = normalizeCategorySlug(String(item.slug ?? ""));
+      if (!slug) return;
+      const current = map.get(slug) ?? [];
+      map.set(slug, [...new Set([...current, ...toSlugArray(item.subCategories ?? item.sub_categories)].filter(Boolean))].sort((a, b) => a.localeCompare(b)));
+    });
+
+    products.forEach((item) => {
+      const category = normalizeCategorySlug(item.category);
+      const subCategory = normalizeCategorySlug(String(item.subCategory ?? item.sub_category ?? ""));
+      if (!category || !subCategory) return;
+      const current = map.get(category) ?? [];
+      map.set(category, [...new Set([...current, subCategory])].sort((a, b) => a.localeCompare(b)));
+    });
+
+    return map;
+  }, [managedCategories, products]);
+
+  const selectedCategorySlug = useMemo(
+    () => normalizeCategorySlug(productForm.category) || defaultProductForm.category,
+    [productForm.category]
+  );
+
+  const selectedCategorySubCategories = useMemo(
+    () => subCategoryChoicesByCategory.get(selectedCategorySlug) ?? [],
+    [selectedCategorySlug, subCategoryChoicesByCategory]
+  );
+
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+    if (!query) return products;
+
+    return products.filter((product) =>
+      [
+        product.name,
+        String(product.sku ?? ""),
+        String(product.brand ?? ""),
+        String(product.category ?? ""),
+        String(product.subCategory ?? product.sub_category ?? "")
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(query)
+    );
+  }, [products, productSearch]);
+
   const previousOrderIds = useRef<Set<string>>(new Set());
   const firstLoad = useRef(true);
 
@@ -314,11 +374,13 @@ export const AdminDashboard = () => {
     const pending = orders.filter((order) => order.status === "pending").length;
     const confirmed = orders.filter((order) => order.status === "confirmed").length;
     const delivered = orders.filter((order) => order.status === "delivered").length;
+    const cancelled = orders.filter((order) => order.status === "cancelled").length;
+    const totalProducts = products.length;
     const revenue = orders.reduce((sum, order) => sum + getOrderAmountPaid(order), 0);
     const outstanding = orders.reduce((sum, order) => sum + getOrderBalance(order), 0);
 
-    return { totalOrders, pending, confirmed, delivered, revenue, outstanding };
-  }, [orders]);
+    return { totalOrders, pending, confirmed, delivered, cancelled, totalProducts, revenue, outstanding };
+  }, [orders, products]);
 
   const logout = () => {
     window.localStorage.removeItem(ADMIN_STORAGE_KEY);
@@ -386,6 +448,7 @@ export const AdminDashboard = () => {
 
     const normalizedSlug = normalizeCategorySlug(categoryForm.slug || categoryForm.label);
     const normalizedLabel = categoryForm.label.trim() || categoryLabel(normalizedSlug);
+    const normalizedSubCategories = toSlugArray(categoryForm.subCategories);
 
     if (!normalizedSlug || !normalizedLabel) {
       toast.error("Weka label au slug ya category.");
@@ -406,7 +469,8 @@ export const AdminDashboard = () => {
           label: normalizedLabel,
           slug: normalizedSlug,
           description: categoryForm.description,
-          image: categoryForm.image
+          image: categoryForm.image,
+          subCategories: normalizedSubCategories
         })
       });
 
@@ -416,12 +480,22 @@ export const AdminDashboard = () => {
       }
 
       toast.success(editingCategoryId ? "Category updated" : "Category added");
+      if (payload.warning) {
+        toast.info(String(payload.warning));
+      }
       setEditingCategoryId(null);
       setCategoryForm(defaultCategoryForm);
       setProductForm((prev) => ({ ...prev, category: normalizedSlug }));
       await refreshCategories();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to save category");
+      const message = error instanceof Error ? error.message : "Unable to save category";
+      if (/supabase|relation .* does not exist|could not find .* relation/i.test(message)) {
+        setCategoryChoices((prev) => (prev.includes(normalizedSlug) ? prev : [...prev, normalizedSlug].sort((a, b) => a.localeCompare(b))));
+        setProductForm((prev) => ({ ...prev, category: normalizedSlug }));
+        toast.info("Category imeongezwa kwa matumizi ya product form. Run latest DB schema ili ihifadhiwe rasmi upande wa categories.");
+      } else {
+        toast.error(message);
+      }
     } finally {
       setSavingCategory(false);
     }
@@ -433,7 +507,8 @@ export const AdminDashboard = () => {
       label: String(category.label ?? ""),
       slug: String(category.slug ?? ""),
       description: String(category.description ?? ""),
-      image: String(category.image ?? "/placeholder.svg")
+      image: String(category.image ?? "/placeholder.svg"),
+      subCategories: toStringList(category.subCategories ?? category.sub_categories)
     });
   };
 
@@ -472,11 +547,53 @@ export const AdminDashboard = () => {
     }
   };
 
+  const syncManagedSubCategory = async (categorySlug: string, subCategorySlug: string) => {
+    if (!subCategorySlug) return;
+
+    const target = managedCategories.find((item) => normalizeCategorySlug(String(item.slug ?? "")) === categorySlug);
+    if (!target?.id) return;
+
+    const current = toSlugArray(target.subCategories ?? target.sub_categories);
+    if (current.includes(subCategorySlug)) return;
+
+    const response = await fetch("/api/admin/categories", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-password": adminPassword
+      },
+      body: JSON.stringify({
+        id: target.id,
+        label: String(target.label ?? categoryLabel(categorySlug)),
+        slug: categorySlug,
+        description: String(target.description ?? ""),
+        image: String(target.image ?? "/placeholder.svg"),
+        subCategories: [...current, subCategorySlug]
+      })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(String(payload.error ?? "Unable to sync sub category"));
+    }
+  };
+
   const saveProduct = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
 
+    const normalizedCategory = normalizeCategorySlug(productForm.category);
+    const normalizedSubCategory = normalizeCategorySlug(productForm.subCategory);
+
     try {
+      if (!normalizedCategory) {
+        throw new Error("Weka main category sahihi.");
+      }
+
+      setCategoryChoices((prev) =>
+        prev.includes(normalizedCategory) ? prev : [...prev, normalizedCategory].sort((a, b) => a.localeCompare(b))
+      );
+
       const response = await fetch("/api/admin/products", {
         method: editingProductId ? "PATCH" : "POST",
         headers: {
@@ -486,8 +603,8 @@ export const AdminDashboard = () => {
         body: JSON.stringify({
           id: editingProductId,
           name: productForm.name,
-          category: normalizeCategorySlug(productForm.category),
-          subCategory: normalizeCategorySlug(productForm.subCategory),
+          category: normalizedCategory,
+          subCategory: normalizedSubCategory,
           sku: productForm.sku,
           brand: productForm.brand,
           originalPrice: Number(productForm.originalPrice),
@@ -518,10 +635,17 @@ export const AdminDashboard = () => {
       if (payload.warning) {
         toast.info(String(payload.warning));
       }
+
+      try {
+        await syncManagedSubCategory(normalizedCategory, normalizedSubCategory);
+      } catch (error) {
+        console.warn("Failed to sync sub category registry", error);
+      }
+
       setEditingProductId(null);
       setProductForm(defaultProductForm);
       setImageFile(null);
-      await refreshProducts();
+      await Promise.all([refreshProducts(), refreshCategories()]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to save product");
     } finally {
@@ -702,12 +826,7 @@ export const AdminDashboard = () => {
       return;
     }
 
-    const paymentMethodLabel =
-      order.paymentMethod === "pesapal"
-        ? "Pesapal"
-        : order.paymentMethod === "bank-deposit"
-          ? "Bank Deposit"
-          : "Cash on Delivery";
+    const paymentMethodLabel = getPaymentMethodLabel(order.paymentMethod);
 
     const paidAmount = getOrderAmountPaid(order);
     const balanceDue = getOrderBalance(order);
@@ -907,13 +1026,13 @@ export const AdminDashboard = () => {
             .summary tr.balance td {
               font-weight: 700;
             }
-            .bank-box {
+            .payment-box {
               margin-top: 18px;
               border: 1px solid #f8b057;
               background: #fff4e6;
               padding: 12px;
             }
-            .bank-box p {
+            .payment-box p {
               margin: 3px 0;
               font-size: 14px;
             }
@@ -1053,8 +1172,10 @@ export const AdminDashboard = () => {
             ${
               order.paymentMethod === "bank-deposit"
                 ? `
-              <div class="bank-box">
-                <p><strong>Bank Deposit Details</strong></p>
+              <div class="payment-box">
+                <p><strong>Manual Payment Details</strong></p>
+                <p><strong>M-Pesa Number:</strong> ${escapeHtml(mpesaDetails.phone)}</p>
+                <p><strong>M-Pesa Name:</strong> ${escapeHtml(mpesaDetails.accountName)}</p>
                 <p><strong>Bank:</strong> ${escapeHtml(bankDetails.bankName)}</p>
                 <p><strong>Account Name:</strong> ${escapeHtml(bankDetails.accountName)}</p>
                 <p><strong>A/C Number:</strong> ${escapeHtml(bankDetails.accountNumber)}</p>
@@ -1146,7 +1267,7 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-8">
         <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-bold uppercase text-[var(--muted)]">Total Orders</p>
           <p className="mt-1 text-2xl font-black">{stats.totalOrders}</p>
@@ -1162,6 +1283,14 @@ export const AdminDashboard = () => {
         <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-bold uppercase text-[var(--muted)]">Delivered</p>
           <p className="mt-1 text-2xl font-black text-green-700">{stats.delivered}</p>
+        </article>
+        <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
+          <p className="text-xs font-bold uppercase text-[var(--muted)]">Cancelled</p>
+          <p className="mt-1 text-2xl font-black text-red-600">{stats.cancelled}</p>
+        </article>
+        <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
+          <p className="text-xs font-bold uppercase text-[var(--muted)]">Products Posted</p>
+          <p className="mt-1 text-2xl font-black">{stats.totalProducts}</p>
         </article>
         <article className="rounded-2xl border border-[var(--border)] bg-white p-4">
           <p className="text-xs font-bold uppercase text-[var(--muted)]">Total Revenue</p>
@@ -1206,7 +1335,7 @@ export const AdminDashboard = () => {
                   Size/Color: {order.selectedSize || "-"} / {order.selectedColor || "-"}
                 </p>
                 <p className="text-xs text-[var(--muted)]">
-                  Payment: {order.paymentMethod || "cash-on-delivery"} • {order.paymentStatus || "unpaid"}
+                  Payment: {getPaymentMethodLabel(order.paymentMethod || "cash-on-delivery")} • {order.paymentStatus || "unpaid"}
                 </p>
                 <p className="text-xs text-[var(--muted)]">
                   Paid/Balance: {formatTZS(getOrderAmountPaid(order))} / {formatTZS(getOrderBalance(order))}
@@ -1294,7 +1423,9 @@ export const AdminDashboard = () => {
                       <p className="text-xs text-[var(--muted)]">{order.address}</p>
                     </td>
                     <td className="py-3">
-                      <p className="text-xs font-semibold uppercase text-[var(--muted)]">{order.paymentMethod || "cash-on-delivery"}</p>
+                      <p className="text-xs font-semibold uppercase text-[var(--muted)]">
+                        {getPaymentMethodLabel(order.paymentMethod || "cash-on-delivery")}
+                      </p>
                       <select
                         value={order.paymentStatus || "unpaid"}
                         disabled={updatingOrderId === order.id}
@@ -1394,6 +1525,15 @@ export const AdminDashboard = () => {
                 onChange={(event) => setCategoryForm((prev) => ({ ...prev, description: event.target.value }))}
                 className="min-h-20 w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
               />
+              <textarea
+                placeholder="Sub categories (comma/new line separated)"
+                value={categoryForm.subCategories}
+                onChange={(event) => setCategoryForm((prev) => ({ ...prev, subCategories: event.target.value }))}
+                className="min-h-20 w-full rounded-xl border border-[var(--border)] px-4 py-3 text-sm"
+              />
+              <p className="text-xs text-[var(--muted)]">
+                Andika subcategories za category hii. Ukisave product mpya, subcategory mpya itaongezwa hapa pia.
+              </p>
               <Button type="submit" className="w-full" disabled={savingCategory}>
                 {savingCategory ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
                 {editingCategoryId ? "Update Category" : "Save Category"}
@@ -1412,6 +1552,9 @@ export const AdminDashboard = () => {
                     <p className="font-semibold">{categoryName}</p>
                     <p className="text-xs text-[var(--muted)]">{categorySlug || "-"}</p>
                     <p className="line-clamp-2 text-xs text-[var(--muted)]">{String(category.description ?? "-")}</p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      Sub categories: {toSlugArray(category.subCategories ?? category.sub_categories).join(", ") || "-"}
+                    </p>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <Button type="button" variant="outline" onClick={() => editMainCategory(category)}>
                         <Pencil className="mr-2 h-4 w-4" /> Edit
@@ -1467,26 +1610,42 @@ export const AdminDashboard = () => {
               />
 
               <div className="space-y-2">
-                <select
+                <Input
+                  list="main-category-options"
+                  placeholder="Main category (select existing or type new)"
                   value={productForm.category}
-                  onChange={(event) =>
-                    setProductForm((prev) => ({ ...prev, category: normalizeCategorySlug(event.target.value) as CategorySlug }))
-                  }
-                  className="h-12 w-full rounded-xl border border-[var(--border)] px-4"
-                >
+                  onChange={(event) => setProductForm((prev) => ({ ...prev, category: event.target.value as CategorySlug }))}
+                  required
+                />
+                <datalist id="main-category-options">
                   {categoryChoices.map((slug) => (
                     <option key={slug} value={slug}>
                       {categoryLabelMap.get(slug) ?? categoryLabel(slug)}
                     </option>
                   ))}
-                </select>
-                <p className="text-xs text-[var(--muted)]">Add or edit main categories from the section above.</p>
+                </datalist>
+                <p className="text-xs text-[var(--muted)]">
+                  Category iliyochaguliwa: {categoryLabelMap.get(selectedCategorySlug) ?? categoryLabel(selectedCategorySlug)}.
+                  Unaweza kuchagua iliyopo au kuandika mpya.
+                </p>
               </div>
               <Input
-                placeholder="Sub category (e.g smart-watch, skincare, shoes)"
+                list={`sub-category-options-${selectedCategorySlug}`}
+                placeholder="Sub category (select existing or type new)"
                 value={productForm.subCategory}
                 onChange={(event) => setProductForm((prev) => ({ ...prev, subCategory: event.target.value }))}
               />
+              <datalist id={`sub-category-options-${selectedCategorySlug}`}>
+                {selectedCategorySubCategories.map((subCategory) => (
+                  <option key={subCategory} value={subCategory}>
+                    {categoryLabel(subCategory)}
+                  </option>
+                ))}
+              </datalist>
+              <p className="-mt-1 text-xs text-[var(--muted)]">
+                Subcategories za {categoryLabelMap.get(selectedCategorySlug) ?? categoryLabel(selectedCategorySlug)}:{" "}
+                {selectedCategorySubCategories.map((item) => categoryLabel(item)).join(", ") || "hakuna bado"}
+              </p>
 
               <div className="grid grid-cols-2 gap-2">
                 <Input
@@ -1702,9 +1861,23 @@ export const AdminDashboard = () => {
           </div>
 
           <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
-            <h2 className="text-xl font-black">Current Products</h2>
-            <div className="mt-3 max-h-64 space-y-2 overflow-auto">
-              {products.slice(0, 30).map((product, index) => {
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black">Products Posted</h2>
+                <p className="text-xs text-[var(--muted)]">
+                  Showing {filteredProducts.length} of {products.length} products
+                </p>
+              </div>
+              <div className="w-full sm:w-72">
+                <Input
+                  placeholder="Search by product name, SKU, brand..."
+                  value={productSearch}
+                  onChange={(event) => setProductSearch(event.target.value)}
+                />
+              </div>
+            </div>
+            <div className="mt-3 max-h-[36rem] space-y-2 overflow-auto">
+              {filteredProducts.map((product, index) => {
                 const sale = product.salePrice ?? product.sale_price ?? 0;
                 const original = product.originalPrice ?? product.original_price ?? 0;
                 const productId = String(product.id ?? index);
@@ -1745,6 +1918,9 @@ export const AdminDashboard = () => {
                   </article>
                 );
               })}
+              {!filteredProducts.length ? (
+                <p className="text-sm text-[var(--muted)]">No products match that search.</p>
+              ) : null}
             </div>
           </div>
         </section>

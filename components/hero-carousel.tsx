@@ -49,7 +49,7 @@ export const HeroCarousel = () => {
               Usafiri Tanzania Nzima
             </span>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
-              COD • Pesapal • Bank Deposit
+              COD • Pesapal • M-Pesa / Bank Transfer
             </span>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
               Ofa ya Leo

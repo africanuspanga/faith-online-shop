@@ -78,7 +78,10 @@ export const mergeCategories = (...lists: Category[][]): Category[] => {
       label: category.label?.trim() || current?.label || toTitleCase(normalizedSlug),
       description:
         category.description?.trim() || current?.description || `Bidhaa za ${toTitleCase(normalizedSlug)} kwa ubora na bei rafiki.`,
-      image: category.image?.trim() || current?.image || fallbackCategoryImage
+      image: category.image?.trim() || current?.image || fallbackCategoryImage,
+      subCategories: [
+        ...new Set([...(current?.subCategories ?? []), ...(category.subCategories ?? [])].map(normalizeCategorySlug).filter(Boolean))
+      ]
     });
   });
 

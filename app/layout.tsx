@@ -12,9 +12,9 @@ import { phoneNumber, shopLocation, whatsappLink } from "@/lib/constants";
 
 const siteUrl = "https://www.faithshop.co.tz";
 const siteName = "Faith Online Shop";
-const defaultTitle = "Faith Online Shop | COD, Pesapal & Bank Deposit";
+const defaultTitle = "Faith Online Shop | COD, Pesapal & M-Pesa";
 const defaultDescription =
-  "Nunua electronics, fashion, beauty, home goods na accessories kwa usafiri wa uhakika Tanzania nzima. Chagua COD, Pesapal, au Bank Deposit.";
+  "Nunua electronics, fashion, beauty, home goods na accessories kwa usafiri wa uhakika Tanzania nzima. Chagua COD, Pesapal, au M-Pesa / Bank Transfer.";
 const defaultOgImage = `${siteUrl}/logo-main.png`;
 
 export const metadata: Metadata = {
@@ -32,7 +32,8 @@ export const metadata: Metadata = {
     "fashion Tanzania",
     "COD Tanzania",
     "Pesapal Tanzania",
-    "Bank Deposit Tanzania"
+    "M-Pesa Tanzania",
+    "Bank Transfer Tanzania"
   ],
   authors: [{ name: siteName, url: siteUrl }],
   alternates: {

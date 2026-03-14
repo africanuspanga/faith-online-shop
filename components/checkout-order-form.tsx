@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, CreditCard, LoaderCircle, Shield, Truck, Wallet } from "lucide-react";
 import type { PaymentMethod, Product } from "@/lib/types";
-import { bankDetails } from "@/lib/constants";
 import { formatTZS } from "@/lib/format";
 import { computeQuantityOfferPricing, defaultQuantityOffers } from "@/lib/quantity-offers";
 import { calculateShippingFee, darDeliveryFeeRange, upcountryFlatShippingFee } from "@/lib/shipping-fees";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ManualPaymentDetails } from "@/components/manual-payment-details";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
@@ -340,16 +340,10 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
             className="h-4 w-4 accent-[var(--primary)]"
           />
           <Shield className="h-4 w-4 text-[var(--primary)]" />
-          <span className="font-semibold">Bank Deposit</span>
+          <span className="font-semibold">M-Pesa / Bank Transfer</span>
         </label>
         {paymentMethod === "bank-deposit" ? (
-          <div className="rounded-lg border border-[var(--border)] bg-white p-3 text-xs text-[var(--foreground)]">
-            <p className="font-black text-[var(--primary)]">Bank Details</p>
-            <p className="mt-1"><span className="font-semibold">Bank:</span> {bankDetails.bankName}</p>
-            <p><span className="font-semibold">Account Name:</span> {bankDetails.accountName}</p>
-            <p><span className="font-semibold">A/C Number:</span> {bankDetails.accountNumber}</p>
-            <p className="mt-2 text-[var(--muted)]">Weka kumbukumbu ya transfer, tutathibitisha malipo ndani ya muda mfupi.</p>
-          </div>
+          <ManualPaymentDetails note="Unaweza kulipa kwa M-Pesa au bank transfer. Tutathibitisha malipo ndani ya muda mfupi baada ya kupata uthibitisho." />
         ) : null}
       </div>
 

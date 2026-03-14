@@ -1,4 +1,5 @@
 import { categories as defaultCategories, createFallbackCategory, mergeCategories, normalizeCategorySlug } from "@/lib/categories";
+import { isMissingColumnError } from "@/lib/db-errors";
 import { products as staticProducts } from "@/lib/products";
 import { defaultQuantityOffers, toQuantityOffers } from "@/lib/quantity-offers";
 import { getSupabaseServerClient } from "@/lib/supabase";
@@ -36,6 +37,7 @@ type DatabaseCategoryRow = {
   label: string | null;
   description: string | null;
   image: string | null;
+  sub_categories: string[] | string | null;
   created_at: string | null;
 };
 
@@ -174,7 +176,8 @@ const normalizeDatabaseCategory = (row: DatabaseCategoryRow): Category => {
     slug: fallback.slug,
     label: row.label?.trim() || fallback.label,
     description: row.description?.trim() || fallback.description,
-    image: row.image?.trim() ? toLocalPath(row.image) : fallback.image
+    image: row.image?.trim() ? toLocalPath(row.image) : fallback.image,
+    subCategories: toStringArray(row.sub_categories).map((item) => normalizeCategorySlug(item)).filter(Boolean)
   };
 };
 
@@ -182,10 +185,23 @@ const getDynamicCategories = async (): Promise<Category[]> => {
   const supabase = getSupabaseServerClient();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("categories")
-    .select("id, slug, label, description, image, created_at")
+    .select("id, slug, label, description, image, sub_categories, created_at")
     .order("created_at", { ascending: false });
+
+  let data = primary.data;
+  let error = primary.error;
+
+  if (error && isMissingColumnError(error.message)) {
+    const legacy = await supabase
+      .from("categories")
+      .select("id, slug, label, description, image, created_at")
+      .order("created_at", { ascending: false });
+
+    data = legacy.data?.map((row) => ({ ...row, sub_categories: [] })) ?? null;
+    error = legacy.error;
+  }
 
   if (error || !data?.length) {
     return [];

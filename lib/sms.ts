@@ -1,5 +1,6 @@
 import { phoneNumber as defaultAdminPhone } from "@/lib/constants";
 import { formatTZS } from "@/lib/format";
+import { getPaymentMethodLabel } from "@/lib/payment-utils";
 import type { OrderRecord } from "@/lib/types";
 
 const defaultSmsBaseUrl = "https://messaging-service.co.tz";
@@ -61,12 +62,6 @@ const toAuthHeader = () => {
 const normalizePath = (value: string) => (value.startsWith("/") ? value : `/${value}`);
 const normalizedSmsAdminPhone = normalizeDestinationPhone(smsAdminPhone);
 
-const paymentMethodLabel = (method: OrderRecord["paymentMethod"]) => {
-  if (method === "bank-deposit") return "Bank Deposit";
-  if (method === "pesapal") return "Pesapal";
-  return "Cash on Delivery";
-};
-
 const buildOrderSmsMessage = (order: OrderRecord) => {
   const itemCount = order.orderItems.length;
   const itemLabel = itemCount === 1 ? "item" : "items";
@@ -76,7 +71,7 @@ const buildOrderSmsMessage = (order: OrderRecord) => {
     `ID: ${order.id}`,
     `Customer: ${order.fullName} (${order.phone})`,
     `Total: ${formatTZS(order.total)}`,
-    `Payment: ${paymentMethodLabel(order.paymentMethod)} (${order.paymentStatus})`,
+    `Payment: ${getPaymentMethodLabel(order.paymentMethod)} (${order.paymentStatus})`,
     `Location: ${order.regionCity}`,
     `Items: ${itemCount} ${itemLabel}`
   ].join("\n");

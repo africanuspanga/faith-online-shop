@@ -37,6 +37,7 @@ create table if not exists public.categories (
   label text not null,
   description text not null default '',
   image text not null default '/placeholder.svg',
+  sub_categories text[] not null default '{}',
   created_at timestamptz not null default now()
 );
 
@@ -154,6 +155,7 @@ alter table public.categories add column if not exists slug text not null defaul
 alter table public.categories add column if not exists label text not null default '';
 alter table public.categories add column if not exists description text not null default '';
 alter table public.categories add column if not exists image text not null default '/placeholder.svg';
+alter table public.categories add column if not exists sub_categories text[] not null default '{}';
 
 update public.products
 set slug = regexp_replace(regexp_replace(lower(name), '[^a-z0-9]+', '-', 'g'), '(^-|-$)', '', 'g')
