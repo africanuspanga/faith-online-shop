@@ -132,6 +132,22 @@ const toImageSource = (value: string) => {
   if (/^[a-z0-9.-]+\.[a-z]{2,}([/:?#].*)?$/i.test(trimmed)) return `https://${trimmed}`;
   return `/${trimmed}`;
 };
+const getExternalImageWarning = (value: string) => {
+  const source = toImageSource(value);
+  if (!/^https?:\/\//i.test(source)) return "";
+
+  try {
+    const host = new URL(source).hostname.toLowerCase();
+    if (host.includes("nidadanish.com")) {
+      return "Links za nidadanish.com sasa zinarudisha 403 kwa hotlinking. Tumia upload hapa chini au host picha kwenye storage yako kwanza.";
+    }
+  } catch {
+    return "";
+  }
+
+  return "External image links zinaweza kukataliwa na source site. Ikiwa preview inagoma, upload picha hapa chini badala ya ku-hotlink.";
+};
+
 const placeholderPattern = /(^|\/)placeholder\.svg(?:[?#].*)?$/i;
 const isPlaceholderImage = (value: string | null | undefined) => {
   const normalized = value?.trim() ?? "";
@@ -218,6 +234,7 @@ export const AdminDashboard = () => {
   const [productForm, setProductForm] = useState(defaultProductForm);
   const [productSearch, setProductSearch] = useState("");
   const imagePreviewSrc = useMemo(() => toImageSource(productForm.image), [productForm.image]);
+  const imageSourceWarning = useMemo(() => getExternalImageWarning(productForm.image), [productForm.image]);
 
   useEffect(() => {
     setImagePreviewFailed(false);
@@ -1717,6 +1734,9 @@ export const AdminDashboard = () => {
                 <p className="mt-1 text-xs text-[var(--muted)]">
                   Unaweza kupaste URL moja kwa moja au kutumia upload hapa chini.
                 </p>
+                {imageSourceWarning ? (
+                  <p className="mt-2 text-xs font-semibold text-amber-700">{imageSourceWarning}</p>
+                ) : null}
                 <div className="mt-2 overflow-hidden rounded-xl border border-[var(--border)] bg-white">
                   <div className="relative aspect-square bg-[var(--surface)]">
                     {imagePreviewFailed ? (

@@ -11,10 +11,29 @@ interface ProductGalleryProps {
 
 export const ProductGallery = ({ images, alt }: ProductGalleryProps) => {
   const [index, setIndex] = useState(0);
+  const [failedIndexes, setFailedIndexes] = useState<number[]>([]);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const safeImages = images.length ? images : ["/placeholder.svg"];
+  const hasBrokenCover = failedIndexes.includes(0);
+  const resolvedImages = safeImages.map((image, imageIndex) => {
+    if (!failedIndexes.includes(imageIndex)) {
+      return image;
+    }
 
-  const prev = () => setIndex((current) => (current - 1 + images.length) % images.length);
-  const next = () => setIndex((current) => (current + 1) % images.length);
+    if (imageIndex === 0 || hasBrokenCover) {
+      return "/placeholder.svg";
+    }
+
+    return safeImages[0] || "/placeholder.svg";
+  });
+  const activeIndex = Math.min(index, resolvedImages.length - 1);
+
+  const replaceBrokenImage = (imageIndex: number) => {
+    setFailedIndexes((current) => (current.includes(imageIndex) ? current : [...current, imageIndex]));
+  };
+
+  const prev = () => setIndex((current) => (current - 1 + resolvedImages.length) % resolvedImages.length);
+  const next = () => setIndex((current) => (current + 1) % resolvedImages.length);
 
   return (
     <div className="space-y-3">
@@ -30,12 +49,13 @@ export const ProductGallery = ({ images, alt }: ProductGalleryProps) => {
         }}
       >
         <Image
-          src={images[index]}
+          src={resolvedImages[activeIndex]}
           alt={alt}
           width={700}
           height={700}
           className="aspect-square w-full object-cover"
           priority
+          onError={() => replaceBrokenImage(activeIndex)}
         />
         <button
           type="button"
@@ -56,7 +76,7 @@ export const ProductGallery = ({ images, alt }: ProductGalleryProps) => {
       </div>
 
       <div className="grid grid-cols-4 gap-2">
-        {images.map((image, imageIndex) => (
+        {resolvedImages.map((image, imageIndex) => (
           <button
             key={`${image}-${imageIndex}`}
             type="button"
@@ -65,7 +85,14 @@ export const ProductGallery = ({ images, alt }: ProductGalleryProps) => {
               index === imageIndex ? "border-[var(--primary)]" : "border-[var(--border)]"
             }`}
           >
-            <Image src={image} alt={`${alt} ${imageIndex + 1}`} width={140} height={140} className="aspect-square w-full object-cover" />
+            <Image
+              src={image}
+              alt={`${alt} ${imageIndex + 1}`}
+              width={140}
+              height={140}
+              className="aspect-square w-full object-cover"
+              onError={() => replaceBrokenImage(imageIndex)}
+            />
           </button>
         ))}
       </div>
