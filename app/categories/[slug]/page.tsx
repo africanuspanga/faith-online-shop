@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
   return {
     title: `${category.label} | Faith Online Shop`,
-    description: `${category.description} Nunua ${category.label} kwa usafiri wa uhakika Tanzania nzima na chagua njia ya malipo unayotaka.`,
+    description: `${category.description} Explore ${category.label} with easy ordering and reliable delivery across Tanzania.`,
     alternates: {
       canonical: `/categories/${category.slug}`
     }

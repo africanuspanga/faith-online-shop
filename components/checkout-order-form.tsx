@@ -69,27 +69,27 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
     event.preventDefault();
 
     if (productOutOfStock) {
-      toast.error("Bidhaa hii imeisha stock kwa sasa.");
+      toast.error("This product is currently out of stock.");
       return;
     }
 
     if (!customerName || !phone || !regionCity || !address) {
-      toast.error("Tafadhali jaza taarifa zote muhimu.");
+      toast.error("Please fill in all required details.");
       return;
     }
 
     if (product.sizeOptions.length && !selectedSize) {
-      toast.error("Tafadhali chagua size.");
+      toast.error("Please choose a size.");
       return;
     }
 
     if (product.colorOptions.length && !selectedColor) {
-      toast.error("Tafadhali chagua color.");
+      toast.error("Please choose a color.");
       return;
     }
 
     if (installmentEnabled && !validDeposit) {
-      toast.error("Weka kiasi cha awali kilicho chini ya jumla ya oda.");
+      toast.error("Enter a valid deposit amount that is lower than the order total.");
       return;
     }
 
@@ -133,16 +133,16 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
       }
 
       if (data.status === "payment_required" && data.paymentUrl) {
-        toast.success("Unaelekezwa Pesapal kukamilisha malipo.");
+        toast.success("Redirecting you to Pesapal to complete payment.");
         window.location.href = data.paymentUrl as string;
         return;
       }
 
       window.scrollTo({ top: 0, behavior: "smooth" });
-      toast.success("Order imepokelewa kikamilifu");
+      toast.success("Your order has been received.");
       router.push(`/thank-you?order=${encodeURIComponent(data.id)}&payment=${encodeURIComponent(paymentMethod)}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kuna hitilafu, jaribu tena.");
+      toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -150,33 +150,33 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-5">
-      <h2 className="text-xl font-black">Taarifa za Uwasilishaji</h2>
+      <h2 className="text-xl font-black">Delivery Details</h2>
       {productOutOfStock ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
-          Bidhaa hii imeisha stock kwa sasa. Tafadhali chagua bidhaa nyingine au wasiliana nasi.
+          This product is currently out of stock. Please choose another item or contact us for help.
         </p>
       ) : null}
       <div className="space-y-2">
         <label htmlFor="customerName" className="text-sm font-semibold">
-          Jina Kamili
+          Full Name
         </label>
         <Input id="customerName" value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
       </div>
       <div className="space-y-2">
         <label htmlFor="phone" className="text-sm font-semibold">
-          Namba ya Simu
+          Phone Number
         </label>
         <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} required />
       </div>
       <div className="space-y-2">
         <label htmlFor="regionCity" className="text-sm font-semibold">
-          Mkoa / Mji
+          Region / City
         </label>
         <Input id="regionCity" value={regionCity} onChange={(event) => setRegionCity(event.target.value)} required />
       </div>
       <div className="space-y-2">
         <label htmlFor="address" className="text-sm font-semibold">
-          Area / Anuani Kamili
+          Area / Full Address
         </label>
         <Textarea id="address" value={address} onChange={(event) => setAddress(event.target.value)} required />
       </div>
@@ -303,7 +303,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
           <span className="text-lg font-black text-[var(--primary)]">{formatTZS(totalPrice)}</span>
         </div>
         {selectedHasBundleOffer ? (
-          <p className="text-xs text-[var(--muted)] line-through">Original bidhaa: {formatTZS(originalTotal)}</p>
+          <p className="text-xs text-[var(--muted)] line-through">Original total: {formatTZS(originalTotal)}</p>
         ) : null}
       </div>
 
@@ -343,7 +343,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
           <span className="font-semibold">M-Pesa / Bank Transfer</span>
         </label>
         {paymentMethod === "bank-deposit" ? (
-          <ManualPaymentDetails note="Unaweza kulipa kwa M-Pesa au bank transfer. Tutathibitisha malipo ndani ya muda mfupi baada ya kupata uthibitisho." />
+          <ManualPaymentDetails note="You can pay by M-Pesa or bank transfer. We confirm the payment shortly after proof is received." />
         ) : null}
       </div>
 
@@ -355,7 +355,7 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
             onChange={(event) => setInstallmentEnabled(event.target.checked)}
             className="h-4 w-4 accent-[var(--primary)]"
           />
-          Lipia kidogo kidogo (installment)
+          Pay in installments
         </label>
         {installmentEnabled ? (
           <div className="space-y-2">
@@ -363,19 +363,19 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
               type="number"
               min={1}
               max={Math.max(totalPrice - 1, 1)}
-              placeholder={`Kiasi cha awali, mfano ${Math.floor(totalPrice * 0.3)}`}
+              placeholder={`Deposit amount, for example ${Math.floor(totalPrice * 0.3)}`}
               value={depositAmount}
               onChange={(event) => setDepositAmount(event.target.value)}
               required
             />
             <Textarea
-              placeholder="Andika maelezo ya ratiba ya malipo (hiari)"
+              placeholder="Add payment schedule notes if needed"
               value={installmentNotes}
               onChange={(event) => setInstallmentNotes(event.target.value)}
               rows={2}
             />
             <p className="text-xs text-[var(--muted)]">
-              Salio litatakiwa kulipwa kabla ya kuchukua oda yako.
+              The remaining balance must be cleared before order collection or final handoff.
             </p>
           </div>
         ) : null}
@@ -383,26 +383,26 @@ export const CheckoutOrderForm = ({ product }: { product: Product }) => {
 
       <Button type="submit" className="w-full" size="lg" disabled={loading || productOutOfStock}>
         {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-        {productOutOfStock ? "OUT OF STOCK" : paymentMethod === "pesapal" ? "ENDELEA KWENYE PESAPAL" : "THIBITISHA ORDER"}
+        {productOutOfStock ? "Out of Stock" : paymentMethod === "pesapal" ? "Continue to Pesapal" : "Place Order"}
       </Button>
       <Link href="/cart" className={`${buttonVariants({ variant: "outline" })} w-full`}>
-        Nunua Bidhaa Nyingi? Tumia Cart Checkout
+        Buying several items? Use Cart Checkout
       </Link>
 
       <div className="grid grid-cols-2 gap-2">
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Truck className="h-4 w-4 text-[var(--accent)]" /> Shipping imehesabiwa kiotomatiki kwa eneo
+          <Truck className="h-4 w-4 text-[var(--accent)]" /> Shipping is calculated automatically by location
         </p>
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Shield className="h-4 w-4 text-[var(--accent)]" /> Malipo salama kwa njia 3
+          <Shield className="h-4 w-4 text-[var(--accent)]" /> Secure checkout with 3 payment options
         </p>
       </div>
       <p className="text-xs text-[var(--muted)]">
-        Dar: {formatTZS(darDeliveryFeeRange.min)}-{formatTZS(darDeliveryFeeRange.max)} kulingana na area. Mikoani:
+        Dar es Salaam: {formatTZS(darDeliveryFeeRange.min)}-{formatTZS(darDeliveryFeeRange.max)} depending on area. Upcountry:
         {formatTZS(upcountryFlatShippingFee)} flat rate.
       </p>
       <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-        <Check className="h-4 w-4 text-[var(--accent)]" /> Tunakuthibitishia oda kwa simu kabla ya kutuma.
+        <Check className="h-4 w-4 text-[var(--accent)]" /> We confirm orders by phone before dispatch.
       </p>
     </form>
   );

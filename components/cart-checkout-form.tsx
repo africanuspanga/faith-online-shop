@@ -35,10 +35,10 @@ export const CartCheckoutForm = () => {
   if (!items.length) {
     return (
       <section className="mx-auto max-w-2xl rounded-2xl border border-[var(--border)] bg-white p-6 text-center sm:p-8">
-        <h1 className="text-2xl font-black">Cart yako haina bidhaa</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">Ongeza bidhaa kwanza kisha urudi hapa kwa checkout.</p>
+        <h1 className="text-2xl font-black">Your cart has no products</h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">Add products first, then come back here to complete checkout.</p>
         <Link href="/shop" className={`${buttonVariants()} mt-5`}>
-          Nenda Shop
+          Go to Shop
         </Link>
       </section>
     );
@@ -48,12 +48,12 @@ export const CartCheckoutForm = () => {
     event.preventDefault();
 
     if (!customerName || !phone || !regionCity || !address) {
-      toast.error("Tafadhali jaza taarifa zote muhimu.");
+      toast.error("Please fill in all required details.");
       return;
     }
 
     if (installmentEnabled && !validDeposit) {
-      toast.error("Weka kiasi cha awali kilicho chini ya jumla ya oda.");
+      toast.error("Enter a valid deposit amount that is lower than the order total.");
       return;
     }
 
@@ -94,15 +94,15 @@ export const CartCheckoutForm = () => {
       clearCart();
 
       if (data.status === "payment_required" && data.paymentUrl) {
-        toast.success("Unaelekezwa Pesapal kukamilisha malipo.");
+        toast.success("Redirecting you to Pesapal to complete payment.");
         window.location.href = data.paymentUrl as string;
         return;
       }
 
-      toast.success("Order imepokelewa kikamilifu");
+      toast.success("Your order has been received.");
       router.push(`/thank-you?order=${encodeURIComponent(data.id)}&payment=${encodeURIComponent(paymentMethod)}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Kuna hitilafu, jaribu tena.");
+      toast.error(error instanceof Error ? error.message : "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -111,7 +111,7 @@ export const CartCheckoutForm = () => {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-5">
-        <h2 className="text-xl font-black">Bidhaa Ulizochagua</h2>
+        <h2 className="text-xl font-black">Selected Items</h2>
         <div className="space-y-2">
           {items.map((item) => (
             <article key={item.id} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
@@ -128,28 +128,28 @@ export const CartCheckoutForm = () => {
       </section>
 
       <section className="space-y-4 rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-5">
-        <h2 className="text-xl font-black">Taarifa za Uwasilishaji</h2>
+        <h2 className="text-xl font-black">Delivery Details</h2>
         <div className="space-y-2">
           <label htmlFor="customerName" className="text-sm font-semibold">
-            Jina Kamili
+            Full Name
           </label>
           <Input id="customerName" value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
         </div>
         <div className="space-y-2">
           <label htmlFor="phone" className="text-sm font-semibold">
-            Namba ya Simu
+            Phone Number
           </label>
           <Input id="phone" value={phone} onChange={(event) => setPhone(event.target.value)} required />
         </div>
         <div className="space-y-2">
           <label htmlFor="regionCity" className="text-sm font-semibold">
-            Mkoa / Mji
+            Region / City
           </label>
           <Input id="regionCity" value={regionCity} onChange={(event) => setRegionCity(event.target.value)} required />
         </div>
         <div className="space-y-2">
           <label htmlFor="address" className="text-sm font-semibold">
-            Area / Anuani Kamili
+            Area / Full Address
           </label>
           <Textarea id="address" value={address} onChange={(event) => setAddress(event.target.value)} required />
         </div>
@@ -207,7 +207,7 @@ export const CartCheckoutForm = () => {
           <span className="font-semibold">M-Pesa / Bank Transfer</span>
         </label>
         {paymentMethod === "bank-deposit" ? (
-          <ManualPaymentDetails note="Unaweza kulipa kwa M-Pesa au bank transfer. Tutathibitisha malipo baada ya kupata uthibitisho." />
+          <ManualPaymentDetails note="You can pay by M-Pesa or bank transfer. We confirm the payment once proof is received." />
         ) : null}
       </section>
 
@@ -219,7 +219,7 @@ export const CartCheckoutForm = () => {
             onChange={(event) => setInstallmentEnabled(event.target.checked)}
             className="h-4 w-4 accent-[var(--primary)]"
           />
-          Lipia kidogo kidogo (installment)
+          Pay in installments
         </label>
         {installmentEnabled ? (
           <div className="space-y-2">
@@ -227,19 +227,19 @@ export const CartCheckoutForm = () => {
               type="number"
               min={1}
               max={Math.max(totalPrice - 1, 1)}
-              placeholder={`Kiasi cha awali, mfano ${Math.floor(totalPrice * 0.3)}`}
+              placeholder={`Deposit amount, for example ${Math.floor(totalPrice * 0.3)}`}
               value={depositAmount}
               onChange={(event) => setDepositAmount(event.target.value)}
               required
             />
             <Textarea
-              placeholder="Andika maelezo ya ratiba ya malipo (hiari)"
+              placeholder="Add payment schedule notes if needed"
               value={installmentNotes}
               onChange={(event) => setInstallmentNotes(event.target.value)}
               rows={2}
             />
             <p className="text-xs text-[var(--muted)]">
-              Salio litatakiwa kulipwa kabla ya kuchukua oda yako.
+              The remaining balance must be cleared before order collection or final handoff.
             </p>
           </div>
         ) : null}
@@ -247,23 +247,23 @@ export const CartCheckoutForm = () => {
 
       <Button type="submit" className="w-full" size="lg" disabled={loading}>
         {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-        {paymentMethod === "pesapal" ? "ENDELEA KWENYE PESAPAL" : "THIBITISHA ORDER"}
+        {paymentMethod === "pesapal" ? "Continue to Pesapal" : "Place Order"}
       </Button>
 
       <div className="grid grid-cols-2 gap-2">
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Truck className="h-4 w-4 text-[var(--accent)]" /> Shipping imehesabiwa kiotomatiki kwa eneo
+          <Truck className="h-4 w-4 text-[var(--accent)]" /> Shipping is calculated automatically by location
         </p>
         <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-          <Shield className="h-4 w-4 text-[var(--accent)]" /> Malipo salama kwa njia 3
+          <Shield className="h-4 w-4 text-[var(--accent)]" /> Secure checkout with 3 payment options
         </p>
       </div>
       <p className="text-xs text-[var(--muted)]">
-        Dar: {formatTZS(darDeliveryFeeRange.min)}-{formatTZS(darDeliveryFeeRange.max)} kulingana na area. Mikoani:
+        Dar es Salaam: {formatTZS(darDeliveryFeeRange.min)}-{formatTZS(darDeliveryFeeRange.max)} depending on area. Upcountry:
         {formatTZS(upcountryFlatShippingFee)} flat rate.
       </p>
       <p className="inline-flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
-        <Check className="h-4 w-4 text-[var(--accent)]" /> Tunakuthibitishia oda kwa simu kabla ya kutuma.
+        <Check className="h-4 w-4 text-[var(--accent)]" /> We confirm orders by phone before dispatch.
       </p>
     </form>
   );

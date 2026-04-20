@@ -17,10 +17,10 @@ export const CartPage = () => {
     return (
       <section className="mx-auto max-w-2xl rounded-2xl border border-[var(--border)] bg-white p-6 text-center sm:p-8">
         <ShoppingBag className="mx-auto h-14 w-14 text-[var(--muted)]" />
-        <h1 className="mt-3 text-2xl font-black">Cart yako iko tupu</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">Ongeza bidhaa kadhaa kwenye cart ili ufanye checkout mara moja.</p>
+        <h1 className="mt-3 text-2xl font-black">Your cart is empty</h1>
+        <p className="mt-2 text-sm text-[var(--muted)]">Add a few products to your cart so you can check out in one go.</p>
         <Link href="/shop" className={`${buttonVariants()} mt-5`}>
-          Endelea Kununua
+          Continue Shopping
         </Link>
       </section>
     );
@@ -31,10 +31,10 @@ export const CartPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-black sm:text-4xl">Shopping Cart</h1>
-          <p className="text-sm text-[var(--muted)]">{items.length} bidhaa tofauti cart</p>
+          <p className="text-sm text-[var(--muted)]">{items.length} unique item{items.length === 1 ? "" : "s"} in your cart</p>
         </div>
         <Button type="button" variant="outline" onClick={clearCart}>
-          Futa Cart Yote
+          Clear Cart
         </Button>
       </div>
 
@@ -145,9 +145,9 @@ export const CartPage = () => {
               <span className="font-semibold text-green-700">{formatTZS(savings)}</span>
             </div>
           </div>
-          <p className="text-xs text-[var(--muted)]">Shipping itahesabiwa checkout kulingana na area yako.</p>
+          <p className="text-xs text-[var(--muted)]">Shipping is calculated at checkout based on your delivery area.</p>
           <Link href="/checkout" className={`${buttonVariants()} w-full`}>
-            Endelea Checkout
+            Continue to Checkout
           </Link>
           <Link href="/shop" className={`${buttonVariants({ variant: "outline" })} w-full`}>
             Continue Shopping

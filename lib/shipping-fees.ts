@@ -10,7 +10,7 @@ const DAR_RATE_INCREMENT = 1000;
 const darRatesFromSheet: DarDeliveryRate[] = [
   { area: "Area 1 Bibi Titi / Morogoro", baseFee: 3000 },
   { area: "Area 2 Uhuru St", baseFee: 3000 },
-  { area: "Area 3 Nyerere 1", baseFee: 3000, notes: "Imewekwa kwenye band ya karibu ya mjini." },
+  { area: "Area 3 Nyerere 1", baseFee: 3000, notes: "Matched to the nearest central route band." },
   { area: "Area 4 Nyerere 2", baseFee: 5000 },
   { area: "Area 5 Mandela Rd", baseFee: 8000 },
   { area: "Area 6 Morogoro 1", baseFee: 4000 },
@@ -164,7 +164,7 @@ export const calculateShippingFee = ({
   if (!darDetected) {
     return {
       fee: upcountryFlatShippingFee,
-      regionLabel: "Mikoa (Outside Dar)",
+      regionLabel: "Upcountry (Outside Dar)",
       matchedArea: "Flat Rate",
       isDar: false
     };

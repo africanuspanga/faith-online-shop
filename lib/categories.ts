@@ -1,4 +1,5 @@
 import type { Category } from "@/lib/types";
+import { getStorefrontCategoryDescription } from "@/lib/storefront-copy";
 
 const fallbackCategoryImage = "/placeholder.svg";
 
@@ -21,7 +22,7 @@ export const createFallbackCategory = (slug: string): Category => {
   return {
     slug: normalized || "general",
     label,
-    description: `Bidhaa za ${label} kwa ubora na bei rafiki.`,
+    description: getStorefrontCategoryDescription({ slug: normalized, label }),
     image: fallbackCategoryImage
   };
 };
@@ -30,37 +31,37 @@ export const categories: Category[] = [
   {
     slug: "electronic",
     label: "Electronic",
-    description: "Vifaa vya kisasa vya kidijitali kwa matumizi ya kila siku.",
+    description: "Modern gadgets and tech essentials selected for everyday use, work, and entertainment.",
     image: "/116plus-smart-watch.webp"
   },
   {
     slug: "fashion",
     label: "Fashion",
-    description: "Mavazi ya kisasa kwa muonekano wa kujiamini.",
+    description: "Comfortable clothing and wardrobe staples picked for style, value, and daily wear.",
     image: "/black-hoodie-streetwear.webp"
   },
   {
     slug: "fashion-accessories",
     label: "Fashion & Accessories",
-    description: "Saa, miwani, na mifuko inayokamilisha mtindo wako.",
+    description: "Accessories that add polish, convenience, and a finished look to every outfit.",
     image: "/womens-crossbody-bag.webp"
   },
   {
     slug: "hardware-automobile",
     label: "Hardware & Automobile",
-    description: "Vifaa vya gari na vifaa muhimu vya matumizi ya nje.",
+    description: "Practical car and utility accessories chosen for performance, convenience, and durability.",
     image: "/12v-car-kettle.webp"
   },
   {
     slug: "health-beauty",
     label: "Health & Beauty",
-    description: "Bidhaa za urembo na afya kwa mwonekano bora kila siku.",
+    description: "Daily beauty and self-care products selected for simple routines and dependable results.",
     image: "/vitamin-c-serum.webp"
   },
   {
     slug: "home-living",
     label: "Home & Living",
-    description: "Bidhaa za nyumbani zinazoongeza urahisi na mwonekano mzuri.",
+    description: "Home essentials that bring comfort, convenience, and a cleaner everyday setup.",
     image: "/led-desk-lamp.jpg"
   }
 ];
@@ -76,8 +77,11 @@ export const mergeCategories = (...lists: Category[][]): Category[] => {
     map.set(normalizedSlug, {
       slug: normalizedSlug,
       label: category.label?.trim() || current?.label || toTitleCase(normalizedSlug),
-      description:
-        category.description?.trim() || current?.description || `Bidhaa za ${toTitleCase(normalizedSlug)} kwa ubora na bei rafiki.`,
+      description: getStorefrontCategoryDescription({
+        slug: normalizedSlug,
+        label: category.label?.trim() || current?.label || toTitleCase(normalizedSlug),
+        description: category.description?.trim() || current?.description
+      }),
       image: category.image?.trim() || current?.image || fallbackCategoryImage,
       subCategories: [
         ...new Set([...(current?.subCategories ?? []), ...(category.subCategories ?? [])].map(normalizeCategorySlug).filter(Boolean))

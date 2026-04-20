@@ -82,7 +82,7 @@ const toOrderItems = (row: Record<string, unknown>) => {
   }
 
   const productId = toString(row.product_id ?? row.productId);
-  const productName = toString(row.product_name ?? row.productName, "Bidhaa");
+  const productName = toString(row.product_name ?? row.productName, "Product");
   const quantity = Math.max(1, toNumber(row.quantity, 1));
   const subtotal = roundMoney(toNumber(row.subtotal, toNumber(row.total, 0)));
 
@@ -126,7 +126,7 @@ export async function GET(request: Request) {
   const orderId = toString(url.searchParams.get("order"));
 
   if (!phone || normalizedPhone.length < 6) {
-    return NextResponse.json({ error: "Weka namba ya simu uliotumia kuagiza." }, { status: 400 });
+    return NextResponse.json({ error: "Enter the phone number used when placing the order." }, { status: 400 });
   }
 
   const supabase = getSupabaseServerClient();

@@ -192,7 +192,7 @@ const toOrderRecord = (
     toNumber(row.total, computeOrderTotal(subtotal, shippingFee, shippingAdjustment))
   );
 
-  const fallbackProductName = toString(row.product_name ?? row.productName, "Bidhaa");
+  const fallbackProductName = toString(row.product_name ?? row.productName, "Product");
   const fallbackProductId = toString(row.product_id ?? row.productId);
   const fallbackQuantity = Math.max(1, toNumber(row.quantity, 1));
   const fallbackSelectedSize = toString(row.selected_size ?? row.selectedSize);
@@ -418,7 +418,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
       }
       if (!product.inStock) {
-        return NextResponse.json({ error: "Bidhaa hii imeisha stock kwa sasa." }, { status: 400 });
+        return NextResponse.json({ error: "This product is currently out of stock." }, { status: 400 });
       }
 
       const selectedOfferId = toString(body.selectedOfferId);
@@ -694,7 +694,7 @@ export async function POST(request: Request) {
             return NextResponse.json(
               {
                 error:
-                  "Database schema missing order_payments support. Tafadhali run SQL migration mpya kisha jaribu tena."
+                  "Database schema is missing order_payments support. Run the latest SQL migration and try again."
               },
               { status: 500 }
             );
@@ -939,7 +939,7 @@ export async function PATCH(request: Request) {
             return NextResponse.json(
               {
                 error:
-                  "Database schema missing order_payments support. Tafadhali run SQL migration mpya kisha jaribu tena."
+                  "Database schema is missing order_payments support. Run the latest SQL migration and try again."
               },
               { status: 500 }
             );

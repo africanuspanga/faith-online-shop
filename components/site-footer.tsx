@@ -14,10 +14,10 @@ export const SiteFooter = async () => {
             COD • Pesapal • Bank
           </p>
           <p className="bg-[var(--secondary)] px-3 py-2 text-center text-[11px] font-black uppercase tracking-wide text-[var(--foreground)]">
-            Usafiri Tanzania Nzima
+            Delivery Across Tanzania
           </p>
           <p className="bg-[var(--accent)] px-3 py-2 text-center text-[11px] font-black uppercase tracking-wide text-[var(--foreground)]">
-            Stock Ipo Tayari
+            Ready to Order
           </p>
         </div>
       </div>
@@ -26,10 +26,10 @@ export const SiteFooter = async () => {
         <section>
           <Image src="/logo-main.png" alt="Faith Online Shop" width={200} height={56} className="h-11 w-auto" />
           <p className="mt-3 text-sm leading-relaxed text-gray-300">
-            Duka la mtandaoni la Tanzania lenye bidhaa bora, usafiri wa uhakika, na malipo ya njia tofauti.
+            A Tanzania online shop for everyday essentials, reliable delivery, and flexible payment options.
           </p>
           <p className="mt-3 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
-            Tunahudumia wateja 10,000+ Tanzania
+            Serving 10,000+ customers across Tanzania
           </p>
         </section>
 

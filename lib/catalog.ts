@@ -2,6 +2,7 @@ import { categories as defaultCategories, createFallbackCategory, mergeCategorie
 import { isMissingColumnError } from "@/lib/db-errors";
 import { products as staticProducts } from "@/lib/products";
 import { defaultQuantityOffers, toQuantityOffers } from "@/lib/quantity-offers";
+import { getStorefrontCategoryDescription } from "@/lib/storefront-copy";
 import { getSupabaseServerClient } from "@/lib/supabase";
 import type { Category, CategorySlug, Product } from "@/lib/types";
 
@@ -73,6 +74,23 @@ const normalizeImageSource = (value: string | null | undefined, slug: string, ga
   return toLocalPath(raw);
 };
 
+const normalizeGallerySources = (image: string, gallery: string[]) => {
+  const seen = new Set<string>();
+  const ordered = [image, ...gallery]
+    .map((item) => toLocalPath(item))
+    .filter((item) => {
+      if (!item.trim() || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+
+  if (ordered.length) {
+    return ordered;
+  }
+
+  return [image];
+};
+
 const normalizeCategory = (value: string): CategorySlug => normalizeCategorySlug(value) || "electronic";
 
 const toStringArray = (value: string[] | string | null | undefined): string[] => {
@@ -109,6 +127,7 @@ const normalizeDatabaseProduct = (row: DatabaseProductRow): Product => {
   const quantityOptions = toQuantityOffers(row.quantity_options ?? staticProduct?.quantityOptions ?? defaultQuantityOffers);
   const normalizedGallery = gallery.map((item) => toLocalPath(item));
   const image = normalizeImageSource(row.image, slug, normalizedGallery);
+  const gallerySources = normalizeGallerySources(image, normalizedGallery);
   const salePrice = Number(row.sale_price) || 0;
   const originalPrice = Number(row.original_price) || salePrice;
 
@@ -125,7 +144,7 @@ const normalizeDatabaseProduct = (row: DatabaseProductRow): Product => {
     rating: Number(row.rating ?? 4.5),
     inStock: Boolean(row.in_stock ?? true),
     image,
-    gallery: normalizedGallery.length ? normalizedGallery : [image, image, image],
+    gallery: gallerySources,
     sizeOptions: sizeOptions.length ? sizeOptions : (staticProduct?.sizeOptions ?? []),
     colorOptions: colorOptions.length ? colorOptions : (staticProduct?.colorOptions ?? []),
     quantityOptions,
@@ -175,7 +194,11 @@ const normalizeDatabaseCategory = (row: DatabaseCategoryRow): Category => {
   return {
     slug: fallback.slug,
     label: row.label?.trim() || fallback.label,
-    description: row.description?.trim() || fallback.description,
+    description: getStorefrontCategoryDescription({
+      slug: fallback.slug,
+      label: row.label?.trim() || fallback.label,
+      description: row.description?.trim() || fallback.description
+    }),
     image: row.image?.trim() ? toLocalPath(row.image) : fallback.image,
     subCategories: toStringArray(row.sub_categories).map((item) => normalizeCategorySlug(item)).filter(Boolean)
   };

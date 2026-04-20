@@ -21,11 +21,11 @@ export const OrderReviewForm = ({ orderId }: OrderReviewFormProps) => {
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!orderId) {
-      toast.error("Order ID haijapatikana.");
+      toast.error("Order ID was not found.");
       return;
     }
     if (!comment.trim()) {
-      toast.error("Andika maoni yako kwanza.");
+      toast.error("Please write your review first.");
       return;
     }
 
@@ -46,13 +46,13 @@ export const OrderReviewForm = ({ orderId }: OrderReviewFormProps) => {
 
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Imeshindikana kutuma review.");
+        throw new Error(payload.error ?? "Unable to submit your review.");
       }
 
       setSubmitted(true);
-      toast.success("Asante, review yako imepokelewa.");
+      toast.success("Thank you. Your review has been received.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Imeshindikana kutuma review.");
+      toast.error(error instanceof Error ? error.message : "Unable to submit your review.");
     } finally {
       setLoading(false);
     }
@@ -61,26 +61,26 @@ export const OrderReviewForm = ({ orderId }: OrderReviewFormProps) => {
   if (!orderId) {
     return (
       <p className="text-xs text-[var(--muted)]">
-        Hakuna Order ID. Fungua ukurasa huu kupitia link ya baada ya checkout ili uweze kutoa review.
+        No order ID was found. Open this page from the post-checkout link so you can leave a review.
       </p>
     );
   }
 
   if (submitted) {
-    return <p className="text-sm font-semibold text-green-700">Review yako imetumwa. Asante kwa kuamini Faith Online Shop.</p>;
+    return <p className="text-sm font-semibold text-green-700">Your review has been sent. Thank you for choosing Faith Online Shop.</p>;
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-3">
       <div className="space-y-2">
         <label htmlFor="review-name" className="text-sm font-semibold">
-          Jina (hiari)
+          Name (optional)
         </label>
         <Input
           id="review-name"
           value={customerName}
           onChange={(event) => setCustomerName(event.target.value)}
-          placeholder="Mfano: Amina"
+          placeholder="Example: Amina"
         />
       </div>
 
@@ -105,23 +105,23 @@ export const OrderReviewForm = ({ orderId }: OrderReviewFormProps) => {
 
       <div className="space-y-2">
         <label htmlFor="review-comment" className="text-sm font-semibold">
-          Maoni
+          Review
         </label>
         <Textarea
           id="review-comment"
           value={comment}
           onChange={(event) => setComment(event.target.value)}
           rows={4}
-          placeholder="Toa maoni yako kuhusu bidhaa na huduma..."
+          placeholder="Share your thoughts about the product and service..."
           required
         />
       </div>
 
       <Button type="submit" disabled={loading}>
         {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Tuma Review
+        Submit Review
       </Button>
-      <p className="text-xs text-[var(--muted)]">Review itakubaliwa baada ya admin kuweka oda yako kuwa delivered.</p>
+      <p className="text-xs text-[var(--muted)]">Your review is approved after the admin marks your order as delivered.</p>
     </form>
   );
 };

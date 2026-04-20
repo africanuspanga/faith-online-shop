@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       }
 
       if (String(order.status) !== "delivered") {
-        return NextResponse.json({ error: "Review inaruhusiwa baada ya oda kuwa delivered." }, { status: 400 });
+        return NextResponse.json({ error: "Reviews can only be submitted after the order is marked as delivered." }, { status: 400 });
       }
 
       const { data: existing, error: existingError } = await supabase
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
       }
 
       if (existing) {
-        return NextResponse.json({ error: "Review ya oda hii tayari ipo." }, { status: 409 });
+        return NextResponse.json({ error: "A review for this order already exists." }, { status: 409 });
       }
 
       const payload = {
@@ -112,11 +112,11 @@ export async function POST(request: Request) {
     }
 
     if (order.status !== "delivered") {
-      return NextResponse.json({ error: "Review inaruhusiwa baada ya oda kuwa delivered." }, { status: 400 });
+      return NextResponse.json({ error: "Reviews can only be submitted after the order is marked as delivered." }, { status: 400 });
     }
 
     if (memoryReviews.some((item) => item.orderId === orderId)) {
-      return NextResponse.json({ error: "Review ya oda hii tayari ipo." }, { status: 409 });
+      return NextResponse.json({ error: "A review for this order already exists." }, { status: 409 });
     }
 
     const review: ProductReview = {

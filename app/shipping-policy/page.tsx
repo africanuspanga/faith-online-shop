@@ -5,7 +5,7 @@ import { darDeliveryFeeRange, darDeliveryRates, upcountryFlatShippingFee } from 
 export const metadata: Metadata = {
   title: "Shipping Policy Tanzania | Faith Online Shop",
   description:
-    "Soma utaratibu wa usafiri wa Faith Online Shop: gharama ya usafiri kulingana na eneo, muda wa kufika oda, na uthibitisho wa oda kwa simu.",
+    "Read the Faith Online Shop shipping policy for delivery fees, estimated timelines, and order confirmation details.",
   alternates: {
     canonical: "/shipping-policy"
   }
@@ -18,23 +18,22 @@ export default function ShippingPolicyPage() {
         <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--primary)]">Faith Online Shop</p>
         <h1 className="mt-2 text-3xl font-black sm:text-4xl">Shipping Policy</h1>
         <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
-          Tunalenga kupeleka oda kwa haraka na kwa urahisi kwa wateja wote Tanzania. Hii ni taarifa ya jumla ya namna
-          usafiri wetu unavyofanya kazi.
+          We aim to deliver orders quickly and smoothly for customers across Tanzania. This page explains how our delivery process works.
         </p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-2">
         <article className="rounded-2xl border border-[var(--border)] bg-white p-5">
-          <h2 className="text-lg font-black">Gharama ya Usafiri</h2>
+          <h2 className="text-lg font-black">Delivery Cost</h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-            Dar es Salaam: gharama huanzia {formatTZS(darDeliveryFeeRange.min)} hadi {formatTZS(darDeliveryFeeRange.max)}
-            kulingana na area. Mikoani: flat rate ya {formatTZS(upcountryFlatShippingFee)}.
+            Dar es Salaam delivery ranges from {formatTZS(darDeliveryFeeRange.min)} to {formatTZS(darDeliveryFeeRange.max)}
+            depending on the area. Upcountry delivery is a flat rate of {formatTZS(upcountryFlatShippingFee)}.
           </p>
         </article>
         <article className="rounded-2xl border border-[var(--border)] bg-white p-5">
-          <h2 className="text-lg font-black">Muda wa Kufika</h2>
+          <h2 className="text-lg font-black">Estimated Delivery Time</h2>
           <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-            Dar es Salaam mara nyingi ni siku 1-2. Mikoa mingine mara nyingi ni siku 2-5 kutegemea umbali na ratiba ya usafiri.
+            Dar es Salaam orders usually arrive within 1 to 2 days. Other regions usually take 2 to 5 days depending on distance and transport schedules.
           </p>
         </article>
       </div>
@@ -42,7 +41,7 @@ export default function ShippingPolicyPage() {
       <article className="rounded-2xl border border-[var(--border)] bg-white p-5">
         <h2 className="text-lg font-black">Dar es Salaam Delivery Fees (Updated)</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Kwa maelekezo ya sasa: kuanzia delivery ya 4,000 na kuendelea imeongezwa 1,000.
+          Based on the latest pricing guide, delivery fees from TZS 4,000 upward increase in TZS 1,000 steps depending on route.
         </p>
         <div className="mt-4 overflow-auto">
           <table className="min-w-full text-left text-sm">
@@ -68,25 +67,23 @@ export default function ShippingPolicyPage() {
       </article>
 
       <article className="rounded-2xl border border-[var(--border)] bg-white p-5">
-        <h2 className="text-lg font-black">Mikoani Delivery Fee</h2>
+        <h2 className="text-lg font-black">Upcountry Delivery Fee</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Mikoa yote nje ya Dar es Salaam: <strong>{formatTZS(upcountryFlatShippingFee)}</strong> (flat rate).
+          All regions outside Dar es Salaam: <strong>{formatTZS(upcountryFlatShippingFee)}</strong> flat rate.
         </p>
       </article>
 
       <article className="rounded-2xl border border-[var(--border)] bg-white p-5">
-        <h2 className="text-lg font-black">Uthibitisho wa Oda</h2>
+        <h2 className="text-lg font-black">Order Confirmation</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Oda nyingi huthibitishwa kwa simu au WhatsApp kabla ya kutumwa. Tafadhali hakikisha namba ya simu ni sahihi
-          ili kuepusha kuchelewa.
+          Most orders are confirmed by phone call or WhatsApp before dispatch. Please make sure your phone number is correct to avoid delays.
         </p>
       </article>
 
       <article className="rounded-2xl border border-[var(--border)] bg-white p-5">
-        <h2 className="text-lg font-black">Malipo</h2>
+        <h2 className="text-lg font-black">Payments</h2>
         <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-          Tunakubali <strong>Cash on Delivery, Pesapal, na M-Pesa / Bank Transfer</strong>. Kwa installment, unaweza kulipa
-          kiasi cha awali na kumalizia kabla ya kuchukua oda.
+          We accept <strong>Cash on Delivery, Pesapal, and M-Pesa / Bank Transfer</strong>. For installment orders, you can pay a deposit first and clear the balance before collection or final handoff.
         </p>
       </article>
     </section>

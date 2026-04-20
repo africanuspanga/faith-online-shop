@@ -44,11 +44,11 @@ export async function POST(
     const notes = toString(body.notes);
 
     if (!phone || normalizedPhone.length < 6) {
-      return NextResponse.json({ error: "Weka namba ya simu uliotumia kuagiza." }, { status: 400 });
+      return NextResponse.json({ error: "Enter the phone number used when placing the order." }, { status: 400 });
     }
 
     if (amount <= 0) {
-      return NextResponse.json({ error: "Weka kiasi sahihi cha malipo." }, { status: 400 });
+      return NextResponse.json({ error: "Enter a valid payment amount." }, { status: 400 });
     }
 
     const supabase = getSupabaseServerClient();
@@ -61,12 +61,12 @@ export async function POST(
         .single();
 
       if (orderQuery.error || !orderQuery.data) {
-        return NextResponse.json({ error: "Order haijapatikana." }, { status: 404 });
+        return NextResponse.json({ error: "Order not found." }, { status: 404 });
       }
 
       const orderPhoneNormalized = normalizePhone(toString(orderQuery.data.phone_normalized || orderQuery.data.phone));
       if (orderPhoneNormalized !== normalizedPhone) {
-        return NextResponse.json({ error: "Namba ya simu haifanani na order hii." }, { status: 403 });
+        return NextResponse.json({ error: "That phone number does not match this order." }, { status: 403 });
       }
 
       const summary = await refreshOrderPaymentSummary(id);
@@ -75,12 +75,12 @@ export async function POST(
       const balanceDue = computeBalanceDue(total, amountPaid);
 
       if (balanceDue <= 0) {
-        return NextResponse.json({ error: "Order hii tayari imelipwa yote." }, { status: 400 });
+        return NextResponse.json({ error: "This order has already been fully paid." }, { status: 400 });
       }
 
       if (amount > balanceDue) {
         return NextResponse.json(
-          { error: `Kiasi kimezidi salio. Salio lililobaki ni ${balanceDue}.` },
+          { error: `This amount is higher than the remaining balance of ${balanceDue}.` },
           { status: 400 }
         );
       }
@@ -122,7 +122,7 @@ export async function POST(
             return NextResponse.json(
               {
                 error:
-                  "Database schema missing order_payments support. Tafadhali run SQL migration mpya kisha jaribu tena."
+                  "Database schema is missing order_payments support. Run the latest SQL migration and try again."
               },
               { status: 500 }
             );
@@ -146,7 +146,7 @@ export async function POST(
           return NextResponse.json(
             {
               error:
-                "Database schema missing order_payments support. Tafadhali run SQL migration mpya kisha jaribu tena."
+                "Database schema is missing order_payments support. Run the latest SQL migration and try again."
             },
             { status: 500 }
           );
@@ -158,18 +158,18 @@ export async function POST(
 
       return NextResponse.json({
         status: "recorded",
-        message: "Payment imehifadhiwa ikiwa pending verification.",
+        message: "The payment has been recorded as pending verification.",
         order: next
       });
     }
 
     const order = memoryOrders.find((item) => item.id === id);
     if (!order) {
-      return NextResponse.json({ error: "Order haijapatikana." }, { status: 404 });
+      return NextResponse.json({ error: "Order not found." }, { status: 404 });
     }
 
     if (normalizePhone(order.phone) !== normalizedPhone) {
-      return NextResponse.json({ error: "Namba ya simu haifanani na order hii." }, { status: 403 });
+      return NextResponse.json({ error: "That phone number does not match this order." }, { status: 403 });
     }
 
     const summary = await refreshOrderPaymentSummary(id);
@@ -178,11 +178,11 @@ export async function POST(
     const balanceDue = computeBalanceDue(total, amountPaid);
 
     if (balanceDue <= 0) {
-      return NextResponse.json({ error: "Order hii tayari imelipwa yote." }, { status: 400 });
+      return NextResponse.json({ error: "This order has already been fully paid." }, { status: 400 });
     }
 
     if (amount > balanceDue) {
-      return NextResponse.json({ error: "Kiasi kimezidi salio lililobaki." }, { status: 400 });
+      return NextResponse.json({ error: "This amount is higher than the remaining balance." }, { status: 400 });
     }
 
     const paymentId = randomUUID();
@@ -239,7 +239,7 @@ export async function POST(
 
     return NextResponse.json({
       status: "recorded",
-      message: "Payment imehifadhiwa ikiwa pending verification.",
+      message: "The payment has been recorded as pending verification.",
       order: next
     });
   } catch {

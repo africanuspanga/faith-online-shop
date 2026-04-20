@@ -14,7 +14,7 @@ const siteUrl = "https://www.faithshop.co.tz";
 const siteName = "Faith Online Shop";
 const defaultTitle = "Faith Online Shop | COD, Pesapal & M-Pesa";
 const defaultDescription =
-  "Nunua electronics, fashion, beauty, home goods na accessories kwa usafiri wa uhakika Tanzania nzima. Chagua COD, Pesapal, au M-Pesa / Bank Transfer.";
+  "Shop electronics, fashion, beauty, home goods, and accessories with reliable delivery across Tanzania. Choose Cash on Delivery, Pesapal, or M-Pesa / Bank Transfer.";
 const defaultOgImage = `${siteUrl}/logo-main.png`;
 
 export const metadata: Metadata = {
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     description: defaultDescription,
     siteName,
     type: "website",
-    locale: "sw_TZ",
+    locale: "en_TZ",
     countryName: "Tanzania",
     url: siteUrl,
     images: [
@@ -102,7 +102,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         telephone: phoneNumber,
         contactType: "customer service",
         areaServed: "TZ",
-        availableLanguage: ["sw", "en"]
+        availableLanguage: ["en"]
       }
     ],
     sameAs: [whatsappLink],
@@ -127,7 +127,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   };
 
   return (
-    <html lang="sw-TZ">
+    <html lang="en">
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }} />

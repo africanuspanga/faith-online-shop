@@ -46,13 +46,13 @@ export const HeroCarousel = () => {
           <p className="mt-2 max-w-lg text-[13px] leading-relaxed text-[var(--muted)] sm:mt-3 sm:text-base">{slide.subtitle}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
-              Usafiri Tanzania Nzima
+              Delivery Across Tanzania
             </span>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
               COD • Pesapal • M-Pesa / Bank Transfer
             </span>
             <span className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-[11px] font-bold">
-              Ofa ya Leo
+              Today&apos;s Picks
             </span>
           </div>
           <Link href="/shop" className={`${buttonVariants({ size: "lg" })} mt-6`}>
@@ -63,12 +63,12 @@ export const HeroCarousel = () => {
 
       <aside className="absolute right-5 top-5 hidden w-56 space-y-2 lg:block">
         <article className="rounded-xl border border-[var(--foreground)] bg-[var(--secondary)] p-3">
-          <p className="text-[11px] font-black uppercase tracking-wide">Deal Hot</p>
-          <p className="mt-1 text-sm font-extrabold">Punguzo la 30% kwa bidhaa zote</p>
+          <p className="text-[11px] font-black uppercase tracking-wide">Today&apos;s Offer</p>
+          <p className="mt-1 text-sm font-extrabold">Up to 30% off selected essentials</p>
         </article>
         <article className="rounded-xl border border-[var(--foreground)] bg-white p-3">
           <p className="text-[11px] font-black uppercase tracking-wide text-[var(--muted)]">Delivery</p>
-          <p className="mt-1 text-sm font-bold">Tunafikisha nchi nzima ndani ya siku chache kwa gharama nafuu</p>
+          <p className="mt-1 text-sm font-bold">Reliable nationwide delivery in just a few days at fair rates</p>
         </article>
       </aside>
 

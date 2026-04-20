@@ -90,7 +90,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const addToCart: CartContextValue["addToCart"] = async (product, quantity = 1, options) => {
     if (!product.inStock) {
-      toast.error(`${product.name} imeisha stock kwa sasa.`);
+      toast.error(`${product.name} is currently out of stock.`);
       return;
     }
 
@@ -127,7 +127,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       ];
     });
 
-    toast.success(`${product.name} imeongezwa kwenye cart`);
+    toast.success(`${product.name} has been added to your cart.`);
   };
 
   const removeFromCart = (itemId: string) => {

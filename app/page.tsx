@@ -8,9 +8,9 @@ import { getCatalogCategories, getCatalogProducts } from "@/lib/catalog";
 import { serviceHours } from "@/lib/constants";
 
 export const metadata: Metadata = {
-  title: "Faith Online Shop Tanzania | Agiza Sasa, Lipa Ukipokea",
+  title: "Faith Online Shop Tanzania | Order Today, Pay on Delivery",
   description:
-    "Faith Online Shop Tanzania: Electronics, Fashion, Beauty, Home & Living. Usafiri wa uhakika Tanzania nzima na malipo COD, Pesapal, au M-Pesa / Bank Transfer.",
+    "Faith Online Shop Tanzania for electronics, fashion, beauty, and home essentials with reliable nationwide delivery and flexible payment options.",
   alternates: {
     canonical: "/"
   }
@@ -34,7 +34,7 @@ export default async function HomePage() {
     <div className="space-y-10">
       <HeroCarousel />
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-center text-xs font-semibold text-[var(--foreground)] sm:text-sm">
-        Usafiri Tanzania Nzima | COD • Pesapal • M-Pesa / Bank Transfer | Bidhaa Bora Tu
+        Nationwide Delivery in Tanzania | COD • Pesapal • M-Pesa / Bank Transfer | Everyday Best Sellers
       </section>
       <CategoryNav items={categoryItems} />
 
@@ -60,7 +60,7 @@ export default async function HomePage() {
       <section className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
         <div className="grid gap-2 text-xs font-bold uppercase tracking-wide text-[var(--foreground)] sm:grid-cols-3 sm:text-sm">
           <p className="rounded-xl bg-white px-3 py-2 text-center">Cash on Delivery</p>
-          <p className="rounded-xl bg-white px-3 py-2 text-center">Usafiri wa Uhakika Tanzania Nzima</p>
+          <p className="rounded-xl bg-white px-3 py-2 text-center">Reliable Delivery Across Tanzania</p>
           <p className="rounded-xl bg-white px-3 py-2 text-center">Customer Support {serviceHours}</p>
         </div>
       </section>

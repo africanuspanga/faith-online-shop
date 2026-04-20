@@ -3,7 +3,7 @@ import { CartPage } from "@/components/cart-page";
 
 export const metadata: Metadata = {
   title: "Cart",
-  description: "Pitia bidhaa ulizoongeza kwenye cart na fanya checkout ya bidhaa nyingi mara moja.",
+  description: "Review the products in your cart and check out multiple items in one order.",
   robots: {
     index: false,
     follow: false

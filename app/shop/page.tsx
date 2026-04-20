@@ -5,7 +5,7 @@ import { getCatalogProducts } from "@/lib/catalog";
 export const metadata: Metadata = {
   title: "Shop All Products | Faith Online Shop Tanzania",
   description:
-    "Nunua bidhaa zote za Faith Online Shop kwa bei nafuu: electronics, fashion, health & beauty, hardware, na home living. Usafiri wa uhakika Tanzania nzima.",
+    "Browse every Faith Online Shop product, from electronics and fashion to beauty, accessories, and home essentials.",
   alternates: {
     canonical: "/shop"
   }

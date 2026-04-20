@@ -4,7 +4,7 @@ import { CartCheckoutForm } from "@/components/cart-checkout-form";
 
 export const metadata: Metadata = {
   title: "Checkout",
-  description: "Kamilisha oda ya bidhaa zako zote ulizoweka kwenye cart kwa malipo salama.",
+  description: "Complete checkout for all items in your cart with secure payment options.",
   robots: {
     index: false,
     follow: false

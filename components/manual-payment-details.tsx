@@ -9,7 +9,7 @@ interface ManualPaymentDetailsProps {
 export const ManualPaymentDetails = ({
   title = "Manual Payment Details",
   className = "",
-  note = "Ukishalipa, tuma uthibitisho wa malipo ili order iwekwe pending verification haraka."
+  note = "After payment, send your proof of payment so your order can move to pending verification quickly."
 }: ManualPaymentDetailsProps) => {
   return (
     <div className={`rounded-lg border border-[var(--border)] bg-white p-3 text-xs text-[var(--foreground)] ${className}`.trim()}>

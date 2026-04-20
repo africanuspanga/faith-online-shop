@@ -73,7 +73,7 @@ export const AccountOrders = () => {
 
   const fetchOrders = async (nextPhone = phone, nextOrderRef = orderRef) => {
     if (!nextPhone.trim()) {
-      toast.error("Weka namba ya simu kwanza.");
+      toast.error("Enter the phone number used for the order first.");
       return;
     }
 
@@ -90,7 +90,7 @@ export const AccountOrders = () => {
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Imeshindikana kupata oda.");
+        throw new Error(payload.error ?? "Unable to fetch your orders.");
       }
 
       const fetchedOrders = (payload.orders ?? []) as AccountOrder[];
@@ -117,7 +117,7 @@ export const AccountOrders = () => {
         return next;
       });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Imeshindikana kupata oda.");
+      toast.error(error instanceof Error ? error.message : "Unable to fetch your orders.");
     } finally {
       setLoading(false);
     }
@@ -134,7 +134,7 @@ export const AccountOrders = () => {
       paymentMethods[order.id] ?? (order.paymentMethod === "bank-deposit" ? "bank-deposit" : "pesapal");
 
     if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Weka kiasi sahihi cha malipo.");
+      toast.error("Enter a valid payment amount.");
       return;
     }
 
@@ -154,7 +154,7 @@ export const AccountOrders = () => {
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Imeshindikana kuanzisha malipo.");
+        throw new Error(payload.error ?? "Unable to start the payment.");
       }
 
       if (payload.status === "payment_required" && payload.paymentUrl) {
@@ -162,10 +162,10 @@ export const AccountOrders = () => {
         return;
       }
 
-      toast.success(payload.message ?? "Malipo yamehifadhiwa.");
+      toast.success(payload.message ?? "Your payment has been recorded.");
       await fetchOrders(phone, orderRef);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Imeshindikana kuanzisha malipo.");
+      toast.error(error instanceof Error ? error.message : "Unable to start the payment.");
     } finally {
       setPayingOrderId(null);
     }
@@ -181,7 +181,7 @@ export const AccountOrders = () => {
       <div className="rounded-2xl border border-[var(--border)] bg-white p-4 sm:p-5">
         <h1 className="text-2xl font-black sm:text-3xl">Order Tracking & Account</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          Weka namba ya simu uliyotumia kuagiza ili kuona order history, status, na installment balance.
+          Enter the phone number used for your order to see order history, status updates, and any remaining installment balance.
         </p>
 
         <form onSubmit={onSubmit} className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
@@ -194,18 +194,18 @@ export const AccountOrders = () => {
           <Input
             value={orderRef}
             onChange={(event) => setOrderRef(event.target.value)}
-            placeholder="Order ID (hiari)"
+            placeholder="Order ID (optional)"
           />
           <Button type="submit" disabled={loading}>
             {loading ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Tafuta Oda
+            Find Order
           </Button>
         </form>
       </div>
 
       {searchDone && sortedOrders.length === 0 ? (
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5 text-sm text-[var(--muted)]">
-          Hakuna order iliyopatikana kwa taarifa hizi.
+          No order was found for those details.
         </div>
       ) : null}
 
@@ -237,7 +237,7 @@ export const AccountOrders = () => {
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm font-bold">Bidhaa kwenye oda</p>
+            <p className="text-sm font-bold">Items in this order</p>
             {order.orderItems.map((item) => (
               <div key={item.id} className="rounded-lg border border-[var(--border)] p-2 text-sm">
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -265,13 +265,13 @@ export const AccountOrders = () => {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[var(--muted)]">Bado hakuna payment record.</p>
+              <p className="text-xs text-[var(--muted)]">There are no payment records yet.</p>
             )}
           </div>
 
           {order.balanceDue > 0 ? (
             <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-sm font-bold">Endelea Kulipa Installment</p>
+              <p className="text-sm font-bold">Continue Your Installment Payment</p>
               <div className="grid gap-2 sm:grid-cols-[1fr_180px_auto]">
                 <Input
                   type="number"
@@ -281,7 +281,7 @@ export const AccountOrders = () => {
                   onChange={(event) =>
                     setPaymentAmounts((prev) => ({ ...prev, [order.id]: event.target.value }))
                   }
-                  placeholder={`Kiasi (max ${Math.floor(order.balanceDue)})`}
+                  placeholder={`Amount (max ${Math.floor(order.balanceDue)})`}
                 />
                 <select
                   value={selectedPaymentMethod}
@@ -302,17 +302,17 @@ export const AccountOrders = () => {
                   disabled={payingOrderId === order.id}
                 >
                   {payingOrderId === order.id ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Lipa Sasa
+                  Pay Now
                 </Button>
               </div>
               {selectedPaymentMethod === "bank-deposit" ? (
                 <div className="space-y-2">
                   <ManualPaymentDetails
                     title="M-Pesa / Bank Transfer Details"
-                    note="Ukishafanya malipo, payment itaonekana pending verification hadi admin aithibitishe."
+                    note="After payment, the record stays pending verification until it is confirmed by the admin team."
                   />
                   <p className="mt-1">
-                    Tuma uthibitisho wa malipo kwa WhatsApp{" "}
+                    Send your payment proof on WhatsApp{" "}
                     <a
                       href={whatsappLink}
                       target="_blank"
@@ -326,13 +326,13 @@ export const AccountOrders = () => {
                 </div>
               ) : (
                 <p className="text-xs text-[var(--muted)]">
-                  Ukichagua Pesapal utaelekezwa moja kwa moja kulipa.
+                  Choosing Pesapal will redirect you straight to the payment page.
                 </p>
               )}
             </div>
           ) : (
             <p className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--secondary)] px-4 py-2 text-sm font-semibold text-[var(--foreground)]">
-              Order hii imelipwa kikamilifu
+              This order has been fully paid
             </p>
           )}
           </article>

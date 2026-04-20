@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { Product } from "@/lib/types";
 import { formatTZS } from "@/lib/format";
+import { humanizeSlug } from "@/lib/storefront-copy";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StarRating } from "@/components/star-rating";
 import { useCart } from "@/components/cart-provider";
@@ -44,10 +45,10 @@ export const ProductListItem = ({ product }: { product: Product }) => {
         <p className="mt-1 text-[11px] font-semibold text-[var(--muted)]">{product.brand} • {product.sku}</p>
         {product.subCategory ? (
           <p className="text-[11px] font-semibold text-[var(--muted)]">
-            {product.category} • {product.subCategory}
+            {humanizeSlug(product.category)} • {humanizeSlug(product.subCategory)}
           </p>
         ) : (
-          <p className="text-[11px] font-semibold text-[var(--muted)]">{product.category}</p>
+          <p className="text-[11px] font-semibold text-[var(--muted)]">{humanizeSlug(product.category)}</p>
         )}
         <p className="text-[11px] text-[var(--muted)]">
           Size: {product.sizeOptions.join(", ") || "Standard"} | Color: {product.colorOptions.join(", ") || "Standard"}

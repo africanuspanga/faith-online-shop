@@ -7,7 +7,7 @@ export const TrustBar = () => {
       className="rounded-[24px] border border-[var(--border)] bg-white p-4 shadow-[0_10px_24px_rgba(26,26,26,0.06)] sm:p-6"
     >
       <h2 id="trust-title" className="sr-only">
-        Sababu za kuamini Faith Online Shop
+        Reasons to trust Faith Online Shop
       </h2>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {trustItems.map((item, index) => (

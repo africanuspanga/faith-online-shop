@@ -3,7 +3,7 @@ import { AccountOrders } from "@/components/account-orders";
 
 export const metadata: Metadata = {
   title: "Account & Order Tracking",
-  description: "Angalia historia ya oda zako, status ya delivery, na malipo ya installment yaliyobaki.",
+  description: "Check your order history, delivery status, and any remaining installment balance.",
   robots: {
     index: false,
     follow: false

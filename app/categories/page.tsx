@@ -6,7 +6,7 @@ import { getCatalogCategories } from "@/lib/catalog";
 export const metadata: Metadata = {
   title: "Shop by Category | Faith Online Shop",
   description:
-    "Chagua category unayotaka kuona bidhaa zake kwenye Faith Online Shop.",
+    "Browse Faith Online Shop categories to quickly find the products you want.",
   alternates: {
     canonical: "/categories"
   }
@@ -18,7 +18,7 @@ export default async function CategoriesIndexPage() {
   return (
     <section className="space-y-4">
       <h1 className="text-3xl font-black sm:text-4xl">All Categories</h1>
-      <p className="text-sm text-[var(--muted)]">Chagua category unayotaka kuona bidhaa zake.</p>
+      <p className="text-sm text-[var(--muted)]">Choose a category to explore its products.</p>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
         {categories.map((category) => (
           <Link

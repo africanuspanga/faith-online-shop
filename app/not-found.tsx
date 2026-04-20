@@ -12,7 +12,7 @@ export default async function NotFound() {
       <div className="rounded-2xl border border-[var(--border)] bg-white p-6 text-center sm:p-10">
         <p className="text-sm font-bold uppercase tracking-wide text-[var(--primary)]">404</p>
         <h1 className="mt-2 text-3xl font-black sm:text-4xl">Page Not Found</h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">Ukurasa unaotafuta haujapatikana. Tafuta bidhaa au rudi kwenye shop.</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">The page you are looking for could not be found. Search for a product or head back to the shop.</p>
         <form action="/shop" className="mx-auto mt-4 flex w-full max-w-md items-center gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />

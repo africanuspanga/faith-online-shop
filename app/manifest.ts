@@ -5,12 +5,12 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Faith Online Shop",
     short_name: "Faith Shop",
     description:
-      "Nunua electronics, fashion, beauty, home goods na accessories kwa usafiri wa uhakika Tanzania nzima.",
+      "Shop electronics, fashion, beauty, home goods, and accessories with reliable delivery across Tanzania.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#f45e02",
-    lang: "sw-TZ",
+    lang: "en",
     icons: [
       {
         src: "/favicon-faith-logo.png",
@@ -25,4 +25,3 @@ export default function manifest(): MetadataRoute.Manifest {
     ]
   };
 }
-

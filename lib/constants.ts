@@ -18,30 +18,30 @@ export const mpesaDetails = {
 export const heroSlides = [
   {
     id: 1,
-    title: "Agiza Sasa, Lipa Ukipokea",
-    subtitle: "Punguzo la 30% kwa bidhaa zote muhimu",
-    cta: "Angalia Ofa",
+    title: "Order Today, Pay on Delivery",
+    subtitle: "Save up to 30% on everyday customer favorites",
+    cta: "Shop Best Sellers",
     image: "/slide-01.jpg"
   },
   {
     id: 2,
-    title: "Usafiri wa Haraka Tanzania Nzima",
-    subtitle: "Kutoka Dar es Salaam hadi mikoani, tunafikisha kwa uhakika na gharama nafuu",
-    cta: "Anza Kuagiza",
+    title: "Fast Delivery Across Tanzania",
+    subtitle: "From Dar es Salaam to upcountry destinations, your order gets to you quickly and reliably",
+    cta: "Start Shopping",
     image: "/slide-02.jpg"
   },
   {
     id: 3,
-    title: "Bidhaa Halisi kwa Maisha ya Kila Siku",
-    subtitle: "Electronics, Fashion, Beauty na Home kwa bei rafiki",
-    cta: "Shop Sasa",
+    title: "Everyday Products Worth Coming Back For",
+    subtitle: "Electronics, fashion, beauty, and home essentials at prices that make sense",
+    cta: "Browse the Shop",
     image: "/slide-03.jpg"
   }
 ] as const;
 
 export const trustItems = [
-  { label: "Usafiri wa Uhakika", icon: Truck },
-  { label: "Malipo Njia 3", icon: Shield },
-  { label: `Huduma ${serviceHours}`, icon: Clock },
-  { label: "Wasiliana Sasa", icon: Phone }
+  { label: "Reliable Delivery", icon: Truck },
+  { label: "3 Payment Options", icon: Shield },
+  { label: `Support ${serviceHours}`, icon: Clock },
+  { label: "Contact Us", icon: Phone }
 ] as const;
