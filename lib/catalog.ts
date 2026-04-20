@@ -237,7 +237,7 @@ export const getCatalogProducts = async (): Promise<Product[]> => {
   const supabase = getSupabaseServerClient();
 
   if (!supabase) {
-    return staticProducts;
+    return [];
   }
 
   const { data, error } = await supabase
@@ -246,11 +246,11 @@ export const getCatalogProducts = async (): Promise<Product[]> => {
     .order("created_at", { ascending: false });
 
   if (error || !data?.length) {
-    return staticProducts;
+    return [];
   }
 
   const normalizedDynamic = data.map((row) => normalizeDatabaseProduct(row as DatabaseProductRow));
-  return dedupeBySlug([...normalizedDynamic, ...staticProducts]);
+  return dedupeBySlug(normalizedDynamic);
 };
 
 export const getCatalogProductById = async (id: string): Promise<Product | undefined> => {
