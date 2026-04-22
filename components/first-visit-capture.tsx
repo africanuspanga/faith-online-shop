@@ -45,7 +45,7 @@ export const FirstVisitCapture = () => {
   const [open, setOpen] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [iosSafari, setIosSafari] = useState(false);
+  const [iosSafari] = useState(isIosSafari);
 
   const primaryButtonLabel = useMemo(() => {
     if (deferredPrompt) return "Add to Home Screen";
@@ -72,8 +72,6 @@ export const FirstVisitCapture = () => {
   }, [pathname]);
 
   useEffect(() => {
-    setIosSafari(isIosSafari());
-
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.register("/sw.js").catch(() => {
         // Ignore registration failures and continue with instruction-based install help.
